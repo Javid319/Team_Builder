@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Hackcomp — Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link rel="stylesheet" href="/static/css/assessment.css"/>
+  <link rel="stylesheet" href="/static/css/collaboration.css"/>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ── Topbar ─────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo">H</div>
+      <span class="topbar-name">Hackcomp</span>
+    </div>
+    <div class="topbar-right">
+      <div class="user-pill">
+        <div class="avatar" id="topbar-avatar">?</div>
+        <span id="topbar-email">Loading…</span>
+      </div>
+      <button class="btn btn-ghost btn-sm" id="btn-logout">Sign out</button>
+    </div>
+  </header>
+
+  <!-- ── Sidebar ────────────────────────────────── -->
+  <nav class="sidebar">
+    <span class="sidebar-label">Overview</span>
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+
+    <span class="sidebar-label">Profile</span>
+    <div class="nav-item" onclick="showPage('edit-profile')" id="nav-edit-profile">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Profile
+    </div>
+
+    <span class="sidebar-label">Resume</span>
+    <div class="nav-item" onclick="showPage('resume')" id="nav-resume">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Upload Resume
+    </div>
+
+    <span class="sidebar-label">Assessment</span>
+    <div class="nav-item" onclick="showPage('assessment')" id="nav-assessment">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+      Skill Assessment
+    </div>
+    <div class="nav-item" onclick="showPage('collaboration')" id="nav-collaboration">
+      <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/><circle cx="19" cy="8" r="2"/><path d="M23 21v-1a3 3 0 00-2-2.83"/></svg>
+      Collaboration
+    </div>
+  </nav>
+
+  <!-- ── Main ───────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ══ Dashboard ══ -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <h1 id="dash-greeting">Hello 👋</h1>
+        <p>Here's a summary of your profile status.</p>
+      </div>
+
+      <div id="profile-banner-wrap" style="display:none">
+        <div class="profile-banner">
+          <div class="profile-avatar" id="dash-avatar">?</div>
+          <div class="profile-banner-info">
+            <h2 id="dash-name">—</h2>
+            <p id="dash-meta">—</p>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:10px">
+            <button class="btn btn-ghost btn-sm" onclick="showPage('edit-profile')">Edit</button>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('resume')">Upload Resume</button>
+          </div>
+        </div>
+
+        <div class="stats-strip">
+          <div class="stat">
+            <span class="s-val" id="s-skills">0</span>
+            <span class="s-lbl">Skills</span>
+          </div>
+          <div class="stat">
+            <span class="s-val" id="s-projects">0</span>
+            <span class="s-lbl">Projects</span>
+          </div>
+          <div class="stat">
+            <span class="s-val" id="s-exp">—</span>
+            <span class="s-lbl">Experience</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="no-profile-prompt" class="card" style="display:none;border-color:rgba(99,102,241,0.2);background:rgba(99,102,241,0.04)">
+        <div class="card-title"><span class="ct-icon">👤</span> Profile not created yet</div>
+        <p style="margin-bottom:16px;color:var(--text-2)">Set up your profile to get started. It only takes a minute.</p>
+        <button class="btn btn-primary" onclick="showPage('edit-profile')">Create Profile</button>
+      </div>
+
+
+    </div>
+
+
+
+    <!-- ══ Edit Profile ══ -->
+    <div id="page-edit-profile" class="page">
+      <div class="page-header">
+        <h1>Edit Profile</h1>
+        <p>Create or update your profile. Only filled fields are sent on update.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">👤</span> Basic Info</div>
+        <div class="g2">
+          <div class="field g-full">
+            <label>Full Name *</label>
+            <input id="e-name" type="text" placeholder="Gokhul A"/>
+          </div>
+          <div class="field">
+            <label>College</label>
+            <input id="e-college" type="text" placeholder="MIT, IIT Madras…"/>
+          </div>
+          <div class="field">
+            <label>Degree</label>
+            <input id="e-degree" type="text" placeholder="B.Tech Computer Science"/>
+          </div>
+          <div class="field">
+            <label>Year of Study</label>
+            <input id="e-year" type="number" min="1" max="6" placeholder="3"/>
+          </div>
+          <div class="field">
+            <label>Experience Level</label>
+            <select id="e-exp">
+              <option value="">— Select —</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="experienced">Experienced</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">🔗</span> Links</div>
+        <div class="g3">
+          <div class="field">
+            <label>GitHub</label>
+            <input id="e-github" type="url" placeholder="https://github.com/username"/>
+          </div>
+          <div class="field">
+            <label>LinkedIn</label>
+            <input id="e-linkedin" type="url" placeholder="https://linkedin.com/in/username"/>
+          </div>
+          <div class="field">
+            <label>LeetCode</label>
+            <input id="e-leetcode" type="url" placeholder="https://leetcode.com/username"/>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span class="ct-icon">📅</span> Availability</div>
+        <div class="field" style="margin-bottom:16px">
+          <label>Working Days</label>
+          <div class="day-grid">
+            <span class="day-btn selected" data-day="Mon">Mon</span>
+            <span class="day-btn selected" data-day="Tue">Tue</span>
+            <span class="day-btn selected" data-day="Wed">Wed</span>
+            <span class="day-btn selected" data-day="Thu">Thu</span>
+            <span class="day-btn selected" data-day="Fri">Fri</span>
+            <span class="day-btn" data-day="Sat">Sat</span>
+            <span class="day-btn" data-day="Sun">Sun</span>
+          </div>
+        </div>
+        <div class="g3">
+          <div class="field">
+            <label>Working Hours</label>
+            <input id="e-hours" type="text" placeholder="09:00-18:00"/>
+          </div>
+          <div class="field">
+            <label>Timezone</label>
+            <input id="e-tz" type="text" placeholder="Asia/Kolkata"/>
+          </div>
+          <div class="field">
+            <label>Commitment</label>
+            <select id="e-commit">
+              <option value="">— Select —</option>
+              <option value="casual">Casual</option>
+              <option value="part_time">Part Time</option>
+              <option value="full_time">Full Time</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ Skills ══ -->
+      <div class="card" id="skills-card">
+        <div class="card-title">
+          <span class="ct-icon">⚡</span> My Skills
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;margin-bottom:16px;align-items:end">
+          <div class="field" style="margin:0">
+            <label>Skill Name *</label>
+            <select id="sk-name-select" onchange="handleSkillSelect(this)">
+              <option value="">— Pick a skill —</option>
+              <optgroup label="Languages">
+                <option>Python</option><option>JavaScript</option><option>TypeScript</option>
+                <option>Java</option><option>C</option><option>C++</option><option>C#</option>
+                <option>Go</option><option>Rust</option><option>Kotlin</option><option>Swift</option>
+                <option>PHP</option><option>Ruby</option><option>Scala</option><option>R</option>
+              </optgroup>
+              <optgroup label="Frontend">
+                <option>React</option><option>Next.js</option><option>Vue.js</option>
+                <option>Angular</option><option>HTML</option><option>CSS</option>
+                <option>Tailwind CSS</option><option>Bootstrap</option><option>Redux</option>
+              </optgroup>
+              <optgroup label="Backend">
+                <option>FastAPI</option><option>Django</option><option>Flask</option>
+                <option>Node.js</option><option>Express.js</option><option>Spring Boot</option>
+                <option>Laravel</option><option>NestJS</option><option>GraphQL</option>
+              </optgroup>
+              <optgroup label="Database">
+                <option>PostgreSQL</option><option>MySQL</option><option>MongoDB</option>
+                <option>Redis</option><option>SQLite</option><option>Supabase</option>
+                <option>Firebase</option><option>Elasticsearch</option>
+              </optgroup>
+              <optgroup label="DevOps / Cloud">
+                <option>Docker</option><option>Kubernetes</option><option>AWS</option>
+                <option>GCP</option><option>Azure</option><option>GitHub Actions</option>
+                <option>CI/CD</option><option>Terraform</option><option>Linux</option>
+              </optgroup>
+              <optgroup label="AI / ML">
+                <option>Machine Learning</option><option>Deep Learning</option>
+                <option>TensorFlow</option><option>PyTorch</option><option>scikit-learn</option>
+                <option>Pandas</option><option>NumPy</option><option>LangChain</option>
+                <option>OpenAI API</option><option>Groq</option>
+              </optgroup>
+              <optgroup label="Tools">
+                <option>Git</option><option>REST APIs</option><option>WebSockets</option>
+                <option>Figma</option><option>Postman</option><option>Nginx</option>
+              </optgroup>
+              <option value="__custom__">✎ Type custom skill…</option>
+            </select>
+            <input id="sk-name-custom" type="text" placeholder="Type skill name…"
+              style="display:none;margin-top:6px" onblur="if(!this.value)resetSkillSelect()"/>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Category</label>
+            <input id="sk-category" type="text" placeholder="e.g. Backend, Frontend, ML"/>
+          </div>
+          <div class="field" style="margin:0">
+            <label>Level</label>
+            <select id="sk-level">
+              <option value="">— Select —</option>
+              <option value="low">Beginner</option>
+              <option value="medium">Intermediate</option>
+              <option value="high">Advanced</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-add-skill" style="height:38px">+ Add</button>
+        </div>
+
+        <div id="skill-toast" class="toast" style="margin-bottom:10px"></div>
+
+        <div id="skill-list" style="display:flex;flex-wrap:wrap;gap:8px;min-height:32px">
+          <span style="color:var(--text-3);font-size:0.82rem" id="skill-empty">No skills added yet</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" id="btn-save-profile">Save Profile</button>
+      </div>
+      <div id="edit-toast" class="toast"></div>
+
+    </div>
+
+    <!-- ══ Assessment ══ -->
+    <div id="page-assessment" class="page">
+      <div class="page-header">
+        <h1>Skill Assessment</h1>
+        <p>7 AI-generated questions · timed · results saved to your profile</p>
+      </div>
+
+      <div class="assess-wrap">
+        <div id="assess-toast" class="toast" style="margin-bottom:12px"></div>
+
+        <!-- Start screen -->
+        <div id="assess-start" class="card start-card">
+          <div class="big-icon">🧠</div>
+          <h2>Ready to test your skills?</h2>
+          <p>7 questions generated by AI based on your experience level. Covers Python, FastAPI, SQL, Git, React and more.</p>
+
+          <div class="rules-grid">
+            <div class="rule-item">
+              <span class="ri-icon">❓</span>
+              <div><div class="ri-title">7 Questions</div><div class="ri-sub">Mix of 4 question types</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">⏱</span>
+              <div><div class="ri-title">7–10 Minutes</div><div class="ri-sub">Each question is timed</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">🎯</span>
+              <div><div class="ri-title">Level-based</div><div class="ri-sub">Matches your experience level</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">✦</span>
+              <div><div class="ri-title">AI Evaluated</div><div class="ri-sub">Groq scores your answers instantly</div></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="btn-start-assess" style="min-width:180px">
+            Start Assessment
+          </button>
+        </div>
+
+        <!-- Loading screen -->
+        <div id="assess-loading" style="display:none" class="card">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p id="loading-msg">Loading…</p>
+          </div>
+        </div>
+
+        <!-- Question screen -->
+        <div id="assess-question" style="display:none" class="card">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+            </div>
+            <span class="progress-label" id="q-counter">Question 1 of 7</span>
+            <div class="timer-wrap">
+              <div class="timer-circle" id="timer-circle">45</div>
+            </div>
+          </div>
+
+          <div class="q-header">
+            <div class="q-skills" id="q-skills"></div>
+            <span class="q-type-badge" id="q-type-badge">MCQ</span>
+          </div>
+
+          <div class="q-text" id="q-text"></div>
+
+          <div style="display:none">
+            <pre class="code-block" id="q-code"></pre>
+          </div>
+
+          <div class="mcq-options" id="q-mcq-options" style="display:none"></div>
+
+          <textarea class="answer-area" id="q-text-answer" rows="4" style="display:none"
+            placeholder="Type your answer here…"></textarea>
+
+          <div class="q-nav">
+            <button class="btn btn-ghost btn-sm" id="btn-prev">← Prev</button>
+            <div class="q-dots" id="q-dots"></div>
+            <button class="btn btn-ghost btn-sm" id="btn-next">Next →</button>
+          </div>
+        </div>
+
+        <!-- Results screen -->
+        <div id="assess-results" style="display:none">
+          <div class="card results-header">
+            <div class="big-icon">🎉</div>
+            <h2>Assessment Complete</h2>
+            <p>Here are the skills detected from your answers</p>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">⚡</span> Skill Results</div>
+            <div class="skill-list" id="skills-list"></div>
+            <div style="margin-top:20px;display:flex;gap:10px">
+              <button class="btn btn-primary" id="btn-retry">Take Again</button>
+              <button class="btn btn-ghost" onclick="showPage('dashboard')">Back to Dashboard</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Collaboration Assessment ══ -->
+    <div id="page-collaboration" class="page">
+      <div class="page-header">
+        <h1>Collaboration Assessment</h1>
+        <p>12 questions · 2–3 minutes · optional · helps match you with compatible teammates</p>
+      </div>
+
+      <div class="assess-wrap">
+        <div id="collab-toast" class="toast" style="margin-bottom:12px"></div>
+
+        <!-- ── Start screen ── -->
+        <div id="collab-start" class="card start-card">
+          <div class="big-icon">🤝</div>
+          <h2>How do you collaborate?</h2>
+          <p>12 quick statements, each rated on a 5-point scale. There are no right or wrong answers — just honest ones.</p>
+
+          <div class="rules-grid">
+            <div class="rule-item">
+              <span class="ri-icon">📋</span>
+              <div><div class="ri-title">12 Statements</div><div class="ri-sub">2 per collaboration dimension</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">⏱</span>
+              <div><div class="ri-title">2–3 Minutes</div><div class="ri-sub">No timers — go at your own pace</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">🎯</span>
+              <div><div class="ri-title">6 Dimensions</div><div class="ri-sub">Leadership, Communication &amp; more</div></div>
+            </div>
+            <div class="rule-item">
+              <span class="ri-icon">🔒</span>
+              <div><div class="ri-title">Private</div><div class="ri-sub">Results used only for team matching</div></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="btn-collab-start" style="min-width:200px">
+            Start Assessment
+          </button>
+        </div>
+
+        <!-- ── Loading screen ── -->
+        <div id="collab-loading" style="display:none" class="card">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p id="collab-loading-msg">Loading questions…</p>
+          </div>
+        </div>
+
+        <!-- ── Question screen ── -->
+        <div id="collab-question" style="display:none" class="card">
+
+          <!-- Progress -->
+          <div class="progress-bar-wrap" style="margin-bottom:24px">
+            <div class="progress-bar-track">
+              <div class="progress-bar-fill" id="collab-progress-fill" style="width:0%"></div>
+            </div>
+            <span class="progress-label" id="collab-q-counter">1 of 12</span>
+          </div>
+
+          <!-- Dimension badge -->
+          <div style="margin-bottom:10px">
+            <span class="q-type-badge mcq" id="collab-dim-badge">Leadership</span>
+          </div>
+
+          <!-- Statement text -->
+          <div class="q-text" id="collab-q-text" style="font-size:1.05rem;margin-bottom:24px"></div>
+
+          <!-- Likert scale -->
+          <div class="likert-scale" id="collab-likert">
+            <button class="likert-btn" data-val="1">
+              <span class="likert-icon">😞</span>
+              <span class="likert-label">Strongly<br>Disagree</span>
+            </button>
+            <button class="likert-btn" data-val="2">
+              <span class="likert-icon">🙁</span>
+              <span class="likert-label">Disagree</span>
+            </button>
+            <button class="likert-btn" data-val="3">
+              <span class="likert-icon">😐</span>
+              <span class="likert-label">Neutral</span>
+            </button>
+            <button class="likert-btn" data-val="4">
+              <span class="likert-icon">🙂</span>
+              <span class="likert-label">Agree</span>
+            </button>
+            <button class="likert-btn" data-val="5">
+              <span class="likert-icon">😄</span>
+              <span class="likert-label">Strongly<br>Agree</span>
+            </button>
+          </div>
+
+          <!-- Navigation -->
+          <div class="q-nav" style="margin-top:28px">
+            <button class="btn btn-ghost btn-sm" id="btn-collab-prev">← Back</button>
+            <div class="q-dots" id="collab-dots"></div>
+            <button class="btn btn-ghost btn-sm" id="btn-collab-next" disabled>Next →</button>
+          </div>
+        </div>
+
+        <!-- ── Complete screen ── -->
+        <div id="collab-complete" style="display:none">
+          <div class="card results-header">
+            <div class="big-icon">✅</div>
+            <h2>Assessment Complete</h2>
+            <p>Your collaboration profile has been saved and will be used to find compatible teammates.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><span class="ct-icon">📊</span> Your Collaboration Profile</div>
+            <div id="collab-scores-list" class="skill-list"></div>
+            <div style="margin-top:20px;display:flex;gap:10px">
+              <button class="btn btn-ghost" onclick="showPage('dashboard')">Back to Dashboard</button>
+              <button class="btn btn-ghost btn-sm" id="btn-collab-retake">Retake</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ══ Resume ══ -->    <div id="page-resume" class="page">
+      <div class="page-header">
+        <h1>Upload Resume</h1>
+        <p>PDF only · max 5 MB · stored for the Resume Intelligence module.</p>
+      </div>
+
+      <div class="card">
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="resume-input" accept=".pdf"/>
+          <div class="upload-icon">📄</div>
+          <div class="up-title">Drop your PDF here or click to browse</div>
+          <div class="up-sub">Only PDF files · Max 5 MB</div>
+          <div class="up-file" id="resume-filename"></div>
+        </div>
+
+        <div style="margin-top:16px;display:flex;gap:10px">
+          <button class="btn btn-primary" id="btn-upload">Upload Resume</button>
+        </div>
+        <div id="resume-toast" class="toast"></div>
+
+        <div id="resume-resp" class="resp-box">
+          <div class="resp-head"><span>Response</span><span class="status-badge idle">—</span></div>
+          <pre class="resp-body"></pre>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/assessment.js"></script>
+<script src="/static/js/collaboration.js"></script>
+</body>
+</html>

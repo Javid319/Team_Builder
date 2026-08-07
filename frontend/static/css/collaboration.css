@@ -1,0 +1,110 @@
+/* ── Collaboration Assessment UI ──────────────────────────────── */
+
+/* ── Likert scale ─────────────────────────────────────────────── */
+.likert-scale {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.likert-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: all 0.14s ease;
+  color: var(--text-2);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: center;
+  min-width: 0;
+}
+
+.likert-btn:hover {
+  border-color: var(--brand);
+  background: var(--brand-dim);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+.likert-btn.selected {
+  border-color: var(--brand);
+  background: var(--brand-dim);
+  color: #a5b4fc;
+  box-shadow: 0 0 0 3px var(--brand-dim);
+}
+
+.likert-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  display: block;
+}
+
+.likert-label {
+  display: block;
+  color: inherit;
+}
+
+/* Colour-code each option when selected */
+.likert-btn[data-val="1"].selected { border-color: var(--red);    background: var(--red-dim);               color: #f87171; box-shadow: 0 0 0 3px var(--red-dim); }
+.likert-btn[data-val="2"].selected { border-color: #f97316;       background: rgba(249,115,22,0.1);         color: #fb923c; box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+.likert-btn[data-val="3"].selected { border-color: var(--yellow);  background: rgba(234,179,8,0.1);          color: #fde047; box-shadow: 0 0 0 3px rgba(234,179,8,0.1); }
+.likert-btn[data-val="4"].selected { border-color: #22d3ee;        background: rgba(34,211,238,0.1);         color: #67e8f9; box-shadow: 0 0 0 3px rgba(34,211,238,0.1); }
+.likert-btn[data-val="5"].selected { border-color: var(--green);   background: var(--green-dim);             color: #4ade80; box-shadow: 0 0 0 3px var(--green-dim); }
+
+/* ── Dimension score bars (results) ───────────────────────────── */
+.collab-score-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.collab-score-row .cs-dim {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.collab-score-row .cs-bar-wrap {
+  flex: 1;
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.collab-score-row .cs-bar {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--brand);
+  transition: width 0.8s ease;
+}
+
+.collab-score-row .cs-pct {
+  font-size: 0.82rem;
+  font-weight: 700;
+  width: 42px;
+  text-align: right;
+  flex-shrink: 0;
+  color: var(--text-2);
+}
+
+/* colour gradient based on score */
+.cs-bar.score-high   { background: var(--green); }
+.cs-bar.score-mid    { background: #22d3ee; }
+.cs-bar.score-low    { background: var(--yellow); }
