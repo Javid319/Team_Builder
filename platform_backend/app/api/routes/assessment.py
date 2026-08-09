@@ -58,18 +58,18 @@ def _confidence_level(score: float) -> ConfidenceLevel:
 @router.post("/start", response_model=AssessmentStartOut, status_code=status.HTTP_201_CREATED)
 def start_assessment(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
-    Generate 7 questions via Groq based on the user's experience level.
-    Creates an AssessmentSession with status=pending.
+    Generate 7 questions via Groq based on intermediate experience level.
+    Creates an AssessmentSession without requiring authentication.
+    No profile creation - just assessment session.
     """
-    profile = _get_profile_or_404(current_user.id, db)
+    # Use a default user_id for testing without auth
+    from uuid import uuid4
+    temp_user_id = uuid4()
 
-    exp_level = profile.experience_level.value if profile.experience_level else "intermediate"
-
-    # Get user's manually added skills to focus questions
-    user_skills = [s.name for s in profile.skills] if profile.skills else []
+    exp_level = "intermediate"
+    user_skills = []
 
     # Call Groq
     try:
@@ -80,9 +80,9 @@ def start_assessment(
             detail=f"Failed to generate questions: {str(e)}",
         )
 
-    # Save session
+    # Save session (no profile needed)
     session = AssessmentSession(
-        user_id=current_user.id,
+        user_id=temp_user_id,
         experience_level=exp_level,
         status=AssessmentStatus.pending,
         questions_json=json.dumps(questions),
@@ -111,7 +111,6 @@ def start_assessment(
 def submit_assessment(
     payload: AssessmentSubmitIn,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     """
     Accept the user's answers, call Groq to evaluate them,
@@ -119,7 +118,6 @@ def submit_assessment(
     """
     session = db.query(AssessmentSession).filter(
         AssessmentSession.id == payload.session_id,
-        AssessmentSession.user_id == current_user.id,
     ).first()
 
     if not session:
@@ -151,30 +149,8 @@ def submit_assessment(
             detail=f"Groq evaluation failed: {str(e)}",
         )
 
-    # Write skills to DB
-    profile = _get_profile_or_404(current_user.id, db)
-
-    for sr in skill_results:
-        score = float(sr.get("confidence_score", 0))
-        level = _confidence_level(score)
-
-        skill = Skill(
-            profile_id=profile.id,
-            name=sr["name"],
-            source=SkillSource.assessment,
-            confidence_score=Decimal(str(round(score, 2))),
-            confidence_level=level,
-        )
-        db.add(skill)
-        db.flush()
-
-        evidence = SkillEvidence(
-            skill_id=skill.id,
-            source_type=SkillSource.assessment,
-            evidence_text=sr.get("evidence_text", ""),
-            weight=Decimal(str(round(score, 2))),
-        )
-        db.add(evidence)
+    # Note: Not saving skills to profile since this is anonymous assessment
+    # Skills are stored in session.result_json for display purposes only
 
     # Finalise session
     session.result_json   = json.dumps(skill_results)

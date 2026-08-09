@@ -9,6 +9,7 @@ import logging
 import sys
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.models.errors import ErrorResponse
@@ -52,6 +53,22 @@ def create_app() -> FastAPI:
     # FastAPI instance                                                     #
     # ------------------------------------------------------------------ #
     application = FastAPI(title="Resume Parser Pipeline")
+
+    # ------------------------------------------------------------------ #
+    # CORS Configuration                                                   #
+    # ------------------------------------------------------------------ #
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # ------------------------------------------------------------------ #
     # Global exception handler                                            #

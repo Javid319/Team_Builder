@@ -5,6 +5,7 @@ pymupdf==1.28.2
 httpx==0.28.1
 pydantic==2.10.4
 pydantic-settings==2.7.1
+python-multipart==0.0.32  # Required for file uploads
 
 # ── Testing ───────────────────────────────────────────────────
 pytest==9.1.1
