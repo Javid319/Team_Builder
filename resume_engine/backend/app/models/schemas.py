@@ -41,6 +41,14 @@ class ExperienceObject(BaseModel):
     description: Optional[str] = None
 
 
+class EducationObject(BaseModel):
+    model_config = {"populate_by_name": True, "extra": "ignore"}
+
+    institution: Optional[str] = None   # college / university / school
+    degree: Optional[str] = None        # e.g. B.E., B.Tech, B.Sc
+    course: Optional[str] = None        # e.g. Computer Science
+
+
 def _coerce_list(v):
     """Coerce None or a bare string into a list."""
     if v is None:
@@ -61,8 +69,9 @@ class ResumeProfile(BaseModel):
     achievements: Optional[list[str]] = Field(default_factory=list)
     hackathons: Optional[list[HackathonObject]] = Field(default_factory=list)
     experience: Optional[list[ExperienceObject]] = Field(default_factory=list)
+    education: Optional[list[EducationObject]] = Field(default_factory=list)
 
-    @field_validator("projects", "hackathons", "experience", mode="before")
+    @field_validator("projects", "hackathons", "experience", "education", mode="before")
     @classmethod
     def coerce_object_lists(cls, v):
         return _coerce_list(v)

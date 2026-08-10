@@ -58,3 +58,9 @@ class PersonalityOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class PersonalitySubmitOut(BaseModel):
+    """Returned by /personality/submit — serializes the stored profile cleanly."""
+    result: PersonalityOut
+    strengths: list[str]

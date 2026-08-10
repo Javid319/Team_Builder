@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import ProfileForm from './pages/ProfileForm';
 import SkillAssessment from './pages/SkillAssessment';
 import CollaborationAssessment from './pages/CollaborationAssessment';
+import PersonalityAssessment from './pages/PersonalityAssessment';
 import Onboarding from './pages/onboarding/Onboarding';
 import OnboardingProfile from './pages/onboarding/OnboardingProfile';
 import OnboardingSkills from './pages/onboarding/OnboardingSkills';
@@ -151,6 +152,7 @@ function App() {
           <Route path="/profile" element={<AppGuard><ProfileForm /></AppGuard>} />
           <Route path="/assessment" element={<AppGuard><SkillAssessment /></AppGuard>} />
           <Route path="/collaboration" element={<AppGuard><CollaborationAssessment /></AppGuard>} />
+          <Route path="/personality" element={<AppGuard><PersonalityAssessment /></AppGuard>} />
         </Routes>
       </div>
     </Router>

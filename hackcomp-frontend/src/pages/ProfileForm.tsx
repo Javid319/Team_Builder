@@ -5,9 +5,9 @@ import { Loader2 } from 'lucide-react';
 
 const ProfileForm = () => {
   const [formData, setFormData] = useState({
-    name: '',
     college: '',
     degree: '',
+    course: '',
     year_of_study: 1,
     experience_level: 'beginner',
     github_url: '',
@@ -24,9 +24,9 @@ const ProfileForm = () => {
         const res = await api.getProfile();
         if (res.data) {
           setFormData({
-            name: res.data.name || '',
             college: res.data.college || '',
             degree: res.data.degree || '',
+            course: res.data.course || '',
             year_of_study: res.data.year_of_study || 1,
             experience_level: res.data.experience_level || 'beginner',
             github_url: res.data.github_url || '',
@@ -103,12 +103,7 @@ const ProfileForm = () => {
           )}
 
           <form onSubmit={handleSave}>
-            <div className="form-group">
-              <label className="form-label">Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
-              <input type="text" name="name" className="form-control" value={formData.name} onChange={handleChange} required />
-            </div>
-
-            <div className="grid-2">
+            <div className="grid-3">
               <div className="form-group">
                 <label className="form-label">College / University</label>
                 <input type="text" name="college" className="form-control" value={formData.college} onChange={handleChange} />
@@ -116,6 +111,10 @@ const ProfileForm = () => {
               <div className="form-group">
                 <label className="form-label">Degree</label>
                 <input type="text" name="degree" className="form-control" value={formData.degree} onChange={handleChange} />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Course</label>
+                <input type="text" name="course" className="form-control" value={formData.course} onChange={handleChange} />
               </div>
             </div>
 

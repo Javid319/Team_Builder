@@ -45,4 +45,10 @@ export const api = {
   submitCollabAssessment: (data: any) => apiClient.post('/collaboration/submit', data),
   getCollabResult: () => apiClient.get('/collaboration/result'),
   getCollabStatus: () => apiClient.get('/collaboration/status'),
+
+  // Personality Assessment
+  startPersonalityAssessment: () => apiClient.get('/personality/start'),
+  submitPersonalityAssessment: (data: any) => apiClient.post('/personality/submit', data),
+  getPersonalityResult: () => apiClient.get('/personality/result'),
+  getPersonalityStatus: () => apiClient.get('/personality/status'),
 };

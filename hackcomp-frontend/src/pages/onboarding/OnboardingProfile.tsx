@@ -11,14 +11,13 @@ const OnboardingProfile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    name: '',
     college: '',
     degree: '',
+    course: '',
     year_of_study: 1,
     experience_level: 'beginner',
     github_url: '',
     linkedin_url: '',
-    leetcode_url: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,6 +64,13 @@ const OnboardingProfile = () => {
       const updates: Partial<typeof formData> = {};
       if (profile.github_username) {
         updates.github_url = `https://github.com/${profile.github_username}`;
+      }
+
+      if (profile.education?.length) {
+        const edu = profile.education[0];
+        if (edu.institution) updates.college = edu.institution;
+        if (edu.degree) updates.degree = edu.degree;
+        if (edu.course) updates.course = edu.course;
       }
 
       if (profile.technical_skills?.length) {
@@ -135,19 +141,18 @@ const OnboardingProfile = () => {
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label">Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
-                <input type="text" name="name" required className="form-control" placeholder="Alex Morgan" value={formData.name} onChange={handleChange} />
-              </div>
-
-              <div className="grid-2">
+              <div className="grid-3">
                 <div className="form-group">
                   <label className="form-label">College / University</label>
                   <input type="text" name="college" className="form-control" placeholder="Stanford University" value={formData.college} onChange={handleChange} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Degree</label>
-                  <input type="text" name="degree" className="form-control" placeholder="B.S. Computer Science" value={formData.degree} onChange={handleChange} />
+                  <input type="text" name="degree" className="form-control" placeholder="B.S." value={formData.degree} onChange={handleChange} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Course</label>
+                  <input type="text" name="course" className="form-control" placeholder="Computer Science" value={formData.course} onChange={handleChange} />
                 </div>
               </div>
 
@@ -179,14 +184,9 @@ const OnboardingProfile = () => {
                 <input type="url" name="github_url" className="form-control" placeholder="https://github.com/username" value={formData.github_url} onChange={handleChange} />
               </div>
 
-              <div className="form-group">
+              <div className="form-group" style={{ marginBottom: '24px' }}>
                 <label className="form-label">LinkedIn Profile URL <span className="optional">(optional)</span></label>
                 <input type="url" name="linkedin_url" className="form-control" placeholder="https://linkedin.com/in/username" value={formData.linkedin_url} onChange={handleChange} />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label className="form-label">LeetCode Profile URL <span className="optional">(optional)</span></label>
-                <input type="url" name="leetcode_url" className="form-control" placeholder="https://leetcode.com/username" value={formData.leetcode_url} onChange={handleChange} />
               </div>
 
               <button id="onboarding-save-profile-btn" type="submit" className="btn btn-primary btn-full btn-lg" disabled={loading}>
@@ -205,7 +205,7 @@ const OnboardingProfile = () => {
                 <span className="badge badge-primary">BETA</span>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--muted)', marginBottom: '16px', lineHeight: 1.5 }}>
-                Upload a PDF resume to automatically populate your GitHub handle and extract technical skills for the next step.
+                Upload a PDF resume to automatically fill your college, degree, course, GitHub handle, and extract technical skills for the next step.
               </p>
 
               <input

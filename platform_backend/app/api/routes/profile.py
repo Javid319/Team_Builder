@@ -61,6 +61,8 @@ def create_profile(
         )
 
     profile_data = payload.model_dump(exclude={"availability"})
+    if not profile_data.get("name"):
+        profile_data["name"] = current_user.full_name or "Developer"
     profile = Profile(user_id=current_user.id, **profile_data)
     db.add(profile)
     db.flush()  # get profile.id before inserting availability
@@ -190,6 +192,17 @@ async def upload_resume(
 
                 profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
                 if profile:
+                    # ── Autofill academic fields from the resume (first entry) ──
+                    education = resume_info.get("education") or []
+                    if education:
+                        edu = education[0]
+                        if edu.get("institution") and not profile.college:
+                            profile.college = edu["institution"]
+                        if edu.get("degree") and not profile.degree:
+                            profile.degree = edu["degree"]
+                        if edu.get("course") and not profile.course:
+                            profile.course = edu["course"]
+
                     # Build map of existing skills in DB: lower_name -> Skill object
                     existing_skills_map = {
                         s.name.strip().lower(): s 

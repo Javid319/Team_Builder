@@ -49,12 +49,19 @@ The JSON object MUST conform exactly to this schema:
       "role": <string or null>
     }
   ],
-  "experience": [
+"experience": [
     {
       "company": <string or null>,
       "role": <string or null>,
       "duration": <string or null>,
       "description": <string or null>
+    }
+  ],
+  "education": [
+    {
+      "institution": <string or null>,
+      "degree": <string or null>,
+      "course": <string or null>
     }
   ]
 }
@@ -64,11 +71,12 @@ Rules:
 - "technical_skills" means programming languages, frameworks, tools, platforms, databases, and technologies (e.g. Python, React, Docker, PostgreSQL, AWS).
 - "soft_skills" means interpersonal and professional traits (e.g. Leadership, Communication, Teamwork, Problem Solving).
 - If a skill could be either, prefer "technical_skills".
-- "experience" means ONLY paid work experience, internships, part-time jobs, and freelance work at companies or organisations. Do NOT put colleges, universities, schools, or any educational institutions in "experience" ΓÇö education is out of scope and must be completely ignored.
+- "experience" means ONLY paid work experience, internships, part-time jobs, and freelance work at companies or organisations. Do NOT put colleges, universities, schools, or any educational institutions in "experience".
+- "education" means colleges, universities, and schools only (NOT work experience). For each entry: "institution" is the college/university/school name, "degree" is the qualification (e.g. B.E., B.Tech, B.Sc, M.Sc), and "course" is the field of study (e.g. Computer Science, Information Technology). Put the most recent/latest education entry first. Order education entries from most recent to oldest.
 - Use null (not empty string "") for any string field not present in the resume.
 - Use [] for any array field not present in the resume.
 - Do NOT invent or infer information not explicitly present in the resume.
-- Return ONLY the raw JSON object ΓÇö no markdown, no code fences, no explanations.
+- Return ONLY the raw JSON object — no markdown, no code fences, no explanations.
 """
 
 # ---------------------------------------------------------------------------
@@ -158,6 +166,7 @@ def _merge_profiles(profiles: list[dict]) -> dict:
         "achievements": [],
         "hackathons": [],
         "experience": [],
+        "education": [],
     }
 
     seen_technical: set[str] = set()
@@ -168,7 +177,7 @@ def _merge_profiles(profiles: list[dict]) -> dict:
         if merged["github_username"] is None and profile.get("github_username"):
             merged["github_username"] = profile["github_username"]
 
-        for key in ("projects", "certifications", "achievements", "hackathons", "experience"):
+        for key in ("projects", "certifications", "achievements", "hackathons", "experience", "education"):
             items = profile.get(key)
             if isinstance(items, list):
                 merged[key].extend(items)

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, Enum as SAEnum
+from sqlalchemy import Column, String, Integer, Boolean, ForeignKey, DateTime, Enum as SAEnum, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import enum
@@ -45,13 +45,34 @@ class CollaborationAssessment(Base):
     status       = Column(SAEnum(CollaborationStatus), default=CollaborationStatus.STARTED, nullable=False)
     started_at   = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    scores_json  = Column(Text, nullable=True)
 
     answers = relationship("CollaborationAnswer", back_populates="assessment",
                            cascade="all, delete-orphan")
+    assigned_questions = relationship(
+        "CollaborationAssessmentQuestion",
+        back_populates="assessment",
+        cascade="all, delete-orphan",
+    )
+
+
+class CollaborationAssessmentQuestion(Base):
+    """The immutable question set assigned to one assessment attempt."""
+    __tablename__ = "collaboration_assessment_questions"
+
+    assessment_id = Column(UUID(as_uuid=True), ForeignKey("collaboration_assessments.id", ondelete="CASCADE"), primary_key=True)
+    question_id = Column(UUID(as_uuid=True), ForeignKey("collaboration_questions.id", ondelete="RESTRICT"), primary_key=True)
+
+    assessment = relationship("CollaborationAssessment", back_populates="assigned_questions")
+    question = relationship("CollaborationQuestion")
 
 
 class CollaborationAnswer(Base):
     __tablename__ = "collaboration_answers"
+
+    __table_args__ = (
+        UniqueConstraint("assessment_id", "question_id", name="uq_collaboration_answer_assessment_question"),
+    )
 
     id            = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     assessment_id = Column(UUID(as_uuid=True),

@@ -13,13 +13,13 @@ from app.schemas.personality import PersonalityOut
 
 # ── Create ────────────────────────────────────────────────────
 class ProfileCreate(BaseModel):
-    name: str
+    name: Optional[str] = None            # defaults to the user's signup full name
     college: Optional[str] = None
     degree: Optional[str] = None
+    course: Optional[str] = None
     year_of_study: Optional[int] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
-    leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
     availability: Optional[AvailabilityCreate] = None   # nested, created together
 
@@ -29,10 +29,10 @@ class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     college: Optional[str] = None
     degree: Optional[str] = None
+    course: Optional[str] = None
     year_of_study: Optional[int] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
-    leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
     availability: Optional[AvailabilityCreate] = None
 
@@ -44,10 +44,10 @@ class ProfileOut(BaseModel):
     name: str
     college: Optional[str]
     degree: Optional[str]
+    course: Optional[str]
     year_of_study: Optional[int]
     github_url: Optional[str]
     linkedin_url: Optional[str]
-    leetcode_url: Optional[str]
     experience_level: Optional[ExperienceLevel]
     created_at: datetime
     updated_at: datetime

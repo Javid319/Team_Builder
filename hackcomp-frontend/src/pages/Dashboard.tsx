@@ -1,26 +1,32 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { User, Loader2, GitBranch, ExternalLink, ShieldCheck, FileText } from 'lucide-react';
+import { User, Loader2, GitBranch, ExternalLink, ShieldCheck, FileText, Sparkles } from 'lucide-react';
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<any[]>([]);
+  const [personalityComplete, setPersonalityComplete] = useState(false);
+  const [collaborationComplete, setCollaborationComplete] = useState(false);
   const [loading, setLoading] = useState(true);
   const evaluationMethod = localStorage.getItem('evaluation_method');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [meRes, profRes, skillsRes] = await Promise.all([
+        const [meRes, profRes, skillsRes, personalityRes, collaborationRes] = await Promise.all([
           api.getMe().catch(() => ({ data: null })),
           api.getProfile().catch(() => ({ data: null })),
           api.getSkills().catch(() => ({ data: [] })),
+          api.getPersonalityStatus().catch(() => ({ data: { completed: false } })),
+          api.getCollabStatus().catch(() => ({ data: { completed: false } })),
         ]);
         setUser(meRes.data);
         setProfile(profRes.data);
         setSkills(skillsRes.data || []);
+        setPersonalityComplete(Boolean(personalityRes.data?.completed));
+        setCollaborationComplete(Boolean(collaborationRes.data?.completed));
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
       } finally {
@@ -102,8 +108,27 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Developer Passport */}
-      <div className="flex flex-col gap-4">
+      <div className="grid-2 gap-4">
+        <section className="card" style={{ alignSelf: 'start', borderColor: 'var(--primary)' }}>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={18} color="var(--primary)" />
+            <h3 className="card-title">Boost your team recommendations</h3>
+          </div>
+          <p className="text-subtle text-xs" style={{ lineHeight: 1.6, maxWidth: '420px' }}>
+            {personalityComplete && collaborationComplete
+              ? 'Your assessment profile is complete. Retake the quiz any time to refresh your recommendations.'
+              : 'Take the personality and collaboration assessments so we can recommend teammates who match how you work.'}
+          </p>
+          <Link
+            to={!personalityComplete ? '/personality' : !collaborationComplete ? '/collaboration' : '/personality'}
+            className="btn btn-primary mt-4"
+          >
+            <Sparkles size={14} /> Take the quiz
+          </Link>
+        </section>
+
+        {/* Developer Passport */}
+        <section>
           <div className="card">
             <div className="card-header">
               <h3 className="card-title flex items-center gap-2">
@@ -147,6 +172,7 @@ const Dashboard = () => {
               )}
             </div>
           </div>
+        </section>
       </div>
 
     </div>

@@ -24,5 +24,6 @@ from app.models.assessment import AssessmentSession                 # noqa: F401
 from app.models.collaboration import (                              # noqa: F401, E402
     CollaborationQuestion,
     CollaborationAssessment,
+    CollaborationAssessmentQuestion,
     CollaborationAnswer,
 )

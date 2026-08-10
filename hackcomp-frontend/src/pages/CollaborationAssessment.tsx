@@ -86,7 +86,7 @@ const CollaborationAssessment = () => {
       <div className="fade-in mt-4 glass-panel flex-center" style={{ flexDirection: 'column', gap: '1rem', padding: '4rem 2rem' }}>
         <h2>Collaboration Style Quiz</h2>
         <p style={{ textAlign: 'center', maxWidth: '600px', color: 'var(--text-main)' }}>
-          Evaluate your soft skills across 6 dimensions: Leadership, Communication, Teamwork, Adaptability, Problem Solving, and Reliability.
+          Evaluate your teamwork style across 6 dimensions: Leadership, Communication, Collaboration, Reliability, Adaptability, and Initiative.
         </p>
         {error && <div style={{ color: 'var(--danger)' }}>{error}</div>}
         <button onClick={startQuiz} className="btn btn-primary mt-2" style={{ background: 'var(--success)' }} disabled={loading}>

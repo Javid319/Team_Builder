@@ -31,6 +31,7 @@ from app.models.profile import Profile
 from app.models.collaboration import (
     CollaborationAnswer,
     CollaborationAssessment,
+    CollaborationAssessmentQuestion,
     CollaborationDimension,
     CollaborationQuestion,
     CollaborationStatus,
@@ -148,6 +149,13 @@ def start_assessment(
         status=CollaborationStatus.STARTED,
     )
     db.add(session)
+    db.flush()
+    db.add_all(
+        [
+            CollaborationAssessmentQuestion(assessment_id=session.id, question_id=question.id)
+            for question in questions
+        ]
+    )
     db.commit()
     db.refresh(session)
 
@@ -201,17 +209,28 @@ def submit_assessment(
             detail="This assessment has already been submitted.",
         )
 
-    # Validate that every submitted question_id exists and is active
+    # Validate a complete, unique answer set against this session's assigned
+    # questions. Question IDs from the client are never trusted on their own.
     submitted_ids = {a.question_id for a in payload.answers}
-    db_questions = (
-        db.query(CollaborationQuestion)
-        .filter(CollaborationQuestion.id.in_(submitted_ids))
-        .all()
-    )
-    if len(db_questions) != len(submitted_ids):
+    if len(submitted_ids) != TOTAL_QUESTIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="One or more question IDs are invalid.",
+            detail="Each assigned question must be answered exactly once.",
+        )
+    assigned_questions = (
+        db.query(CollaborationQuestion)
+        .join(
+            CollaborationAssessmentQuestion,
+            CollaborationAssessmentQuestion.question_id == CollaborationQuestion.id,
+        )
+        .filter(CollaborationAssessmentQuestion.assessment_id == session.id)
+        .all()
+    )
+    assigned_ids = {question.id for question in assigned_questions}
+    if submitted_ids != assigned_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Answers must match the questions assigned to this assessment.",
         )
 
     # Build answer map for score computation
@@ -232,7 +251,7 @@ def submit_assessment(
         )
 
     # Compute dimension scores (stored as JSON for team-matching use)
-    scores = _compute_scores(db_questions, answer_map)
+    scores = _compute_scores(assigned_questions, answer_map)
     scores_json = json.dumps(
         [
             {
@@ -250,6 +269,7 @@ def submit_assessment(
     # so the model stays clean without a dedicated column)
     session.status = CollaborationStatus.COMPLETED
     session.completed_at = now
+    session.scores_json = scores_json
 
     # Persist scores alongside the session using a lightweight JSON attribute.
     # If the column does not yet exist on the model we attach it as an

@@ -29,12 +29,12 @@ class Profile(Base):
     name = Column(String(255), nullable=False)
     college = Column(String(255), nullable=True)
     degree = Column(String(255), nullable=True)
+    course = Column(String(255), nullable=True)
     year_of_study = Column(Integer, nullable=True)
 
     # Links
     github_url = Column(String(500), nullable=True)
     linkedin_url = Column(String(500), nullable=True)
-    leetcode_url = Column(String(500), nullable=True)
 
     # Experience
     experience_level = Column(SAEnum(ExperienceLevel), nullable=True)
