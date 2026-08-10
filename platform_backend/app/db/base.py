@@ -19,6 +19,7 @@ from app.models.project import Project                              # noqa: F401
 from app.models.skill import Skill, SkillEvidence                   # noqa: F401, E402
 from app.models.personality import Personality                      # noqa: F401, E402
 from app.models.resume import Resume                                # noqa: F401, E402
+from app.models.resume_verification import ResumeVerification       # noqa: F401, E402
 from app.models.assessment import AssessmentSession                 # noqa: F401, E402
 from app.models.collaboration import (                              # noqa: F401, E402
     CollaborationQuestion,

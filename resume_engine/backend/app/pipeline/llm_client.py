@@ -99,7 +99,11 @@ _FENCE_RE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
 
 
 def _strip_markdown_fences(text: str) -> str:
-    """Remove leading/trailing markdown code fences from *text*."""
+    """Remove leading/trailing markdown code fences or conversational filler from *text*."""
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end >= start:
+        return text[start:end+1]
     return _FENCE_RE.sub("", text).strip()
 
 
@@ -262,6 +266,8 @@ class LLMClient:
                     "schema": self._response_schema,
                 },
             }
+        else:
+            payload["response_format"] = {"type": "json_object"}
 
         return payload
 

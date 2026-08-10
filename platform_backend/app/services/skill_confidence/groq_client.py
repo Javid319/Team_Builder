@@ -6,27 +6,103 @@ Two responsibilities:
 2. evaluate_answers()    — score the user's answers and return detected skills
 """
 import json
+import logging
 import re
-from typing import Any
+import threading
+from typing import Any, List, Tuple
 
 from groq import Groq
 
 from app.core.config import settings
 
-_client = Groq(api_key=settings.groq_api_key)
-MODEL   = settings.groq_model
+logger = logging.getLogger(__name__)
+MODEL = settings.groq_model
+
+
+class GroqKeyRotator:
+    """
+    Manages up to 5 rotating Groq API keys.
+    Provides round-robin selection and automatic retry/failover across configured keys
+    when rate limits or API errors occur.
+    """
+
+    def __init__(self, api_keys: List[str]):
+        # Cap strictly at 5 keys maximum
+        self.api_keys = [k.strip() for k in api_keys if k and k.strip()][:5]
+        if not self.api_keys:
+            raise ValueError("No valid Groq API keys provided for rotation.")
+
+        self._clients = [Groq(api_key=key) for key in self.api_keys]
+        self._index = 0
+        self._lock = threading.Lock()
+
+    @property
+    def key_count(self) -> int:
+        return len(self.api_keys)
+
+    def get_next_client(self) -> Tuple[Groq, int, str]:
+        """Thread-safe round-robin client retrieval."""
+        with self._lock:
+            idx = self._index % len(self._clients)
+            self._index += 1
+            client = self._clients[idx]
+            key = self.api_keys[idx]
+            masked_key = f"{key[:7]}...{key[-4:]}" if len(key) > 11 else "***"
+            return client, idx, masked_key
+
+    def execute_with_failover(self, call_fn) -> Any:
+        """
+        Executes call_fn(client) with round-robin start and failover retries across all keys.
+        Attempts up to self.key_count times before giving up.
+        """
+        max_attempts = self.key_count
+        attempts = 0
+        last_exception = None
+
+        with self._lock:
+            start_idx = self._index % self.key_count
+            self._index += 1
+
+        for offset in range(max_attempts):
+            idx = (start_idx + offset) % self.key_count
+            client = self._clients[idx]
+            key = self.api_keys[idx]
+            masked_key = f"{key[:7]}...{key[-4:]}" if len(key) > 11 else "***"
+
+            try:
+                logger.info(f"Calling Groq API using Key [{idx + 1}/{self.key_count}] ({masked_key})")
+                return call_fn(client)
+            except Exception as e:
+                attempts += 1
+                last_exception = e
+                logger.warning(
+                    f"Groq API call failed on Key [{idx + 1}/{self.key_count}] ({masked_key}). "
+                    f"Error: {str(e)}. Attempt {attempts}/{max_attempts}."
+                )
+                if attempts < max_attempts:
+                    logger.info("Failing over to next available Groq key...")
+
+        raise RuntimeError(f"All {max_attempts} Groq API keys failed. Last error: {str(last_exception)}") from last_exception
+
+
+# Global rotator instance initialized with configured keys (up to 5 keys)
+_rotator = GroqKeyRotator(settings.groq_api_keys_list)
 
 # ── Prompts ────────────────────────────────────────────────────
 
 _GENERATE_PROMPT = """
-You are a senior software engineer creating a short skill assessment.
+You are a senior software engineer creating a coding skill assessment.
 
-Generate exactly 7 coding assessment questions for a {level} developer.
-The user has listed these skills: {skills}.
+Generate exactly 7 coding/technical questions for a {level} developer.
+The user's technical skills are: {skills}.
 
-IMPORTANT: Focus AT LEAST 5 of the 7 questions on the user's listed skills above.
-The remaining 2 questions can cover related topics (e.g. if user knows Python, you can ask FastAPI or SQL).
-Do NOT ask about completely unrelated technologies the user hasn't listed.
+STRICT RULES:
+- ALL 7 questions MUST be from the skills listed above. No exceptions.
+- Only ask about programming languages, frameworks, databases, tools, and technologies.
+- Do NOT ask about soft skills, hobbies, sports, arts, dancing, music, or any non-technical topic.
+- If a listed skill is not a technical/programming topic (e.g. "dancing", "cooking"), IGNORE it completely.
+- If after filtering there are fewer than 2 valid technical skills, ask general Python, JavaScript, SQL, Git, REST API questions instead.
+- Spread questions across different skills — do NOT ask all 7 about the same technology.
 
 Question type distribution (use all four types):
 - 2 × fill_in_code   : show code with one blank line marked __BLANK__, ask user to fill it
@@ -44,7 +120,7 @@ Return ONLY a valid JSON array — no markdown, no explanation. Schema:
   {{
     "id": "q1",
     "type": "fill_in_code" | "debug" | "mcq" | "predict_output",
-    "skills_tested": ["Python", "FastAPI"],
+    "skills_tested": ["Python"],
     "time_limit": 45,
     "question": "Question text here",
     "code_snippet": "code block if applicable, else null",
@@ -64,40 +140,76 @@ Experience level: {level}
 Here are the 7 questions and the user's answers:
 {qa_pairs}
 
-For each skill demonstrated across all answers, return a confidence score (0.00–100.00).
-Be fair but accurate. Partial credit is fine. A completely wrong answer scores 0.
+STRICT SCORING RULES:
+- Only report skills that appear in the "skills_tested" field of the questions above.
+- Do NOT invent or add skills that were not tested in the questions.
+- If the user left an answer blank, empty, or said "(no answer)" → score 0 for that question's skills.
+- A completely wrong answer scores 0. Partial credit is fine for partial answers.
+- If the user answered fewer than 3 questions, all confidence scores must be 40 or below.
 
 Return ONLY a valid JSON array — no markdown, no explanation. Schema:
 [
   {{
-    "name": "Python",
-    "confidence_score": 72.50,
-    "confidence_level": "medium",
-    "evidence_text": "Correctly identified the async bug but missed the missing await keyword"
+    "name": "AWS",
+    "confidence_score": 29.00,
+    "confidence_level": "low",
+    "evidence_text": "Correctly answered 2 out of 7 questions, rest were unanswered"
   }}
 ]
 
 confidence_level must be: "low" (0–40), "medium" (41–70), "high" (71–100)
-Include only skills that were actually tested. Minimum 2 skills, maximum 8.
+Only include skills that appear in the skills_tested fields of the questions above.
+Minimum 1 skill, maximum 8 skills.
 """.strip()
 
 
 # ── Public functions ───────────────────────────────────────────
 
+# Known technical skills whitelist (lowercase) — anything not in this set is filtered out
+_TECHNICAL_KEYWORDS = {
+    "python", "javascript", "typescript", "java", "c", "c++", "c#", "go", "rust",
+    "kotlin", "swift", "php", "ruby", "scala", "r", "dart", "flutter", "html", "css",
+    "react", "next.js", "vue.js", "angular", "redux", "tailwind", "bootstrap",
+    "fastapi", "django", "flask", "node.js", "express", "spring", "nestjs", "graphql",
+    "postgresql", "mysql", "mongodb", "redis", "sqlite", "supabase", "firebase",
+    "docker", "kubernetes", "aws", "gcp", "azure", "terraform", "linux", "nginx",
+    "git", "github actions", "ci/cd", "rest", "rest apis", "websockets",
+    "machine learning", "deep learning", "tensorflow", "pytorch", "scikit-learn",
+    "pandas", "numpy", "langchain", "openai", "sql", "bash", "shell",
+    "figma", "postman", "elasticsearch", "kafka", "rabbitmq",
+}
+
+
+def _filter_technical_skills(skills: list[str]) -> list[str]:
+    """Keep only skills that are programming/tech related."""
+    return [
+        s for s in skills
+        if any(kw in s.lower() for kw in _TECHNICAL_KEYWORDS)
+        or any(s.lower() in kw for kw in _TECHNICAL_KEYWORDS)
+    ]
+
+
 def generate_questions(experience_level: str, skills: list[str] | None = None) -> list[dict[str, Any]]:
     """
-    Call Groq to generate 7 assessment questions focused on the user's skills.
+    Call Groq to generate 7 assessment questions focused on the user's technical skills.
+    Non-technical skills (hobbies, soft skills) are filtered out before sending to Groq.
     Returns a list of question dicts.
     """
-    skills_str = ", ".join(skills) if skills else "general programming"
+    # Filter to only technical skills
+    technical_skills = _filter_technical_skills(skills or [])
+    skills_str = ", ".join(technical_skills) if technical_skills else "Python, JavaScript, SQL, Git, REST APIs"
+
     prompt = _GENERATE_PROMPT.format(level=experience_level, skills=skills_str)
 
-    resp = _client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=4096,
-    )
+    def _call(client: Groq):
+        return client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=4096,
+        )
+
+    resp = _rotator.execute_with_failover(_call)
 
     raw = resp.choices[0].message.content.strip()
     questions = _parse_json(raw)
@@ -124,10 +236,10 @@ def evaluate_answers(
     for ans in answers:
         q = q_map.get(ans["question_id"], {})
         qa_lines.append(
-            f"Q ({q.get('type','')}, skills: {q.get('skills_tested',[])}): "
+            f"Q (type={q.get('type','')}, skills_tested={q.get('skills_tested',[])}): "
             f"{q.get('question','')}\n"
-            f"Correct: {q.get('correct_answer','')}\n"
-            f"User answered: {ans.get('user_answer','(no answer)')}\n"
+            f"Correct answer: {q.get('correct_answer','')}\n"
+            f"User answered: {ans.get('user_answer','') or '(no answer — blank/skipped)'}\n"
         )
 
     prompt = _EVALUATE_PROMPT.format(
@@ -135,12 +247,15 @@ def evaluate_answers(
         qa_pairs="\n---\n".join(qa_lines),
     )
 
-    resp = _client.chat.completions.create(
-        model=MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-        max_tokens=2048,
-    )
+    def _call(client: Groq):
+        return client.chat.completions.create(
+            model=MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+            max_tokens=2048,
+        )
+
+    resp = _rotator.execute_with_failover(_call)
 
     raw = resp.choices[0].message.content.strip()
     skills = _parse_json(raw)

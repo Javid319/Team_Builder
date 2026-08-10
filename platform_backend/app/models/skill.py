@@ -19,9 +19,9 @@ class SkillSource(str, enum.Enum):
 
 
 class ConfidenceLevel(str, enum.Enum):
-    low = "low"
-    medium = "medium"
-    high = "high"
+    beginner = "beginner"
+    intermediate = "intermediate"
+    advanced = "advanced"
 
 
 class Skill(Base):

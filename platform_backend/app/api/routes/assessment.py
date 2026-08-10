@@ -58,20 +58,16 @@ def _confidence_level(score: float) -> ConfidenceLevel:
 @router.post("/start", response_model=AssessmentStartOut, status_code=status.HTTP_201_CREATED)
 def start_assessment(
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Generate 7 questions via Groq based on intermediate experience level.
-    Creates an AssessmentSession without requiring authentication.
-    No profile creation - just assessment session.
+    Requires authentication.
     """
-    # Use a default user_id for testing without auth
-    from uuid import uuid4
-    temp_user_id = uuid4()
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    exp_level = profile.experience_level.value if (profile and profile.experience_level) else "intermediate"
+    user_skills = [s.name for s in profile.skills] if profile else []
 
-    exp_level = "intermediate"
-    user_skills = []
-
-    # Call Groq
     try:
         questions = generate_questions(exp_level, user_skills)
     except Exception as e:
@@ -80,9 +76,8 @@ def start_assessment(
             detail=f"Failed to generate questions: {str(e)}",
         )
 
-    # Save session (no profile needed)
     session = AssessmentSession(
-        user_id=temp_user_id,
+        user_id=current_user.id,
         experience_level=exp_level,
         status=AssessmentStatus.pending,
         questions_json=json.dumps(questions),
@@ -111,22 +106,29 @@ def start_assessment(
 def submit_assessment(
     payload: AssessmentSubmitIn,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    """
-    Accept the user's answers, call Groq to evaluate them,
-    write detected skills + evidence to the DB.
-    """
+    """Submit answers — authentication required."""
     session = db.query(AssessmentSession).filter(
         AssessmentSession.id == payload.session_id,
+        AssessmentSession.user_id == current_user.id,
     ).first()
 
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
 
-    if session.status != AssessmentStatus.pending:
+    # Allow resubmitting if previous attempt failed
+    curr_status = str(session.status.value if hasattr(session.status, "value") else session.status).lower()
+    if curr_status == "failed":
+        session.status = AssessmentStatus.pending
+        db.commit()
+        db.refresh(session)
+        curr_status = "pending"
+
+    if curr_status not in ("pending", "submitted"):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Session is already {session.status.value}",
+            detail=f"Session is already {curr_status}",
         )
 
     answers = [a.model_dump() for a in payload.answers]
