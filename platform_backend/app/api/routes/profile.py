@@ -16,6 +16,12 @@ from app.models.skill import Skill, SkillSource, ConfidenceLevel
 from app.schemas.profile import ProfileCreate, ProfileUpdate, ProfileOut
 from app.schemas.resume import ResumeOut
 from app.schemas.skill import SkillCreate, SkillOut
+from app.services.candidate_profile import (
+    update_evidence_from_verification,
+    update_availability_from_profile,
+    update_experience_from_profile,
+    update_role_from_profile,
+)
 
 router = APIRouter(prefix="/profile", tags=["Profile"])
 
@@ -55,6 +61,14 @@ def _upsert_availability(profile: Profile, avail_data, db: Session) -> None:
         profile.availability = Availability(profile_id=profile.id, **data)
 
 
+def _availability_sync_data(avail_data) -> dict | None:
+    """JSON-ready availability dict for the candidate profile sync, or None."""
+    if avail_data is None:
+        return None
+    data = avail_data.model_dump(exclude_none=True, mode="json")
+    return data if data else None
+
+
 # ── Create Profile ────────────────────────────────────────────
 @router.post("/", response_model=ProfileOut, status_code=status.HTTP_201_CREATED)
 def create_profile(
@@ -87,6 +101,18 @@ def create_profile(
 
     db.commit()
     db.refresh(profile)
+
+    # Sync availability + experience level into the candidate profile.
+    avail_sync = _availability_sync_data(payload.availability)
+    if avail_sync:
+        update_availability_from_profile(db, current_user.id, avail_sync)
+    update_experience_from_profile(
+        db,
+        current_user.id,
+        profile.experience_level.value if profile.experience_level else None,
+    )
+    update_role_from_profile(db, current_user.id, profile.role)
+
     return profile
 
 
@@ -108,6 +134,18 @@ def update_profile(
 
     db.commit()
     db.refresh(profile)
+
+    # Sync availability + experience level into the candidate profile.
+    avail_sync = _availability_sync_data(payload.availability)
+    if avail_sync:
+        update_availability_from_profile(db, current_user.id, avail_sync)
+    update_experience_from_profile(
+        db,
+        current_user.id,
+        profile.experience_level.value if profile.experience_level else None,
+    )
+    update_role_from_profile(db, current_user.id, profile.role)
+
     return profile
 
 
@@ -220,6 +258,7 @@ async def upload_resume(
                         for s in db.query(Skill).filter(Skill.profile_id == profile.id).all()
                     }
                     processed_names: set[str] = set()
+                    verified_evidence: dict[str, float] = {}
 
                     # 1. GitHub-verified Skills (High Confidence)
                     if github_info.get("status") == "completed":
@@ -241,6 +280,8 @@ async def upload_resume(
                                 else ConfidenceLevel.intermediate if conf_score >= 30
                                 else ConfidenceLevel.beginner
                             )
+
+                            verified_evidence[clean_name] = conf_score
 
                             if norm_name in existing_skills_map:
                                 existing_skill = existing_skills_map[norm_name]
@@ -283,6 +324,12 @@ async def upload_resume(
                         existing_skills_map[norm_name] = new_skill
 
                 db.commit()
+
+                # ── Sync verified skill confidence into the Candidate Profile ──
+                # Mirrors the GitHub-verified confidence scores into
+                # profile_data.evidence. The skills table updates above are kept.
+                if verified_evidence:
+                    update_evidence_from_verification(db, current_user.id, verified_evidence)
             else:
                 _log.error(f"Resume engine returned {resp.status_code}: {resp.text[:300]}")
                 resume.parse_status = "failed"

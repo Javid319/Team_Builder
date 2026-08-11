@@ -28,3 +28,4 @@ from app.models.collaboration import (                              # noqa: F401
     CollaborationAnswer,
 )
 from app.models.team_recommendation import TeamRecommendation       # noqa: F401, E402
+from app.models.candidate_profile import CandidateProfile           # noqa: F401, E402

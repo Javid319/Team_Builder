@@ -33,12 +33,26 @@ const emptyForm = {
   department: '',
   year_of_study: '1',
   experience_level: 'beginner',
+  role: '',
   state: '',
   city: '',
   github_url: '',
   linkedin_url: '',
   leetcode_url: '',
 };
+
+const ROLE_OPTIONS = [
+  { value: 'backend_developer', label: 'Backend Developer' },
+  { value: 'frontend_developer', label: 'Frontend Developer' },
+  { value: 'fullstack_developer', label: 'Full Stack Developer' },
+  { value: 'ml_engineer', label: 'ML Engineer' },
+  { value: 'cloud_engineer', label: 'Cloud Engineer' },
+  { value: 'devops_engineer', label: 'DevOps Engineer' },
+  { value: 'mobile_developer', label: 'Mobile Developer' },
+  { value: 'data_engineer', label: 'Data Engineer' },
+  { value: 'cybersecurity', label: 'Cybersecurity' },
+  { value: 'other', label: 'Other' },
+];
 
 const emptyAvailability = {
   working_days: [] as string[],
@@ -85,6 +99,7 @@ const OnboardingProfile = () => {
           department: p.department || '',
           year_of_study: (p.year_of_study || 1).toString(),
           experience_level: p.experience_level || 'beginner',
+          role: p.role || '',
           state: p.state || '',
           city: p.city || '',
           github_url: p.github_url || '',
@@ -192,6 +207,7 @@ const OnboardingProfile = () => {
       department: formData.department,
       year_of_study: parseInt(formData.year_of_study, 10),
       experience_level: formData.experience_level,
+      role: formData.role,
       state: formData.state,
       city: formData.city,
       github_url: formData.github_url,
@@ -303,12 +319,22 @@ const OnboardingProfile = () => {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: 0 }}>
+                <div className="form-group">
                   <label className="form-label">Experience Level</label>
                   <select name="experience_level" className="form-control" value={formData.experience_level} onChange={handleChange}>
                     <option value="beginner">Beginner (&lt; 1 yr)</option>
                     <option value="intermediate">Intermediate (1-3 yrs)</option>
                     <option value="experienced">Experienced (3+ yrs)</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label className="form-label">Role</label>
+                  <select name="role" className="form-control" value={formData.role} onChange={handleChange}>
+                    <option value="">Select a role (optional)</option>
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
                   </select>
                 </div>
               </div>

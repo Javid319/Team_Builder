@@ -80,7 +80,7 @@ const Navigation = () => {
 
   const handleLogout = () => {
     localStorage.clear();
-    navigate('/login', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const isOnboarding = location.pathname.startsWith('/onboarding')

@@ -143,6 +143,12 @@ const ProfilePage = () => {
                 {pretty(profile?.experience_level)}
               </span>
             </div>
+            <div className="dash-summary-item">
+              <span className="dash-summary-label">Role</span>
+              <span className="dash-summary-value" style={{ textTransform: 'capitalize' }}>
+                {pretty(profile?.role)}
+              </span>
+            </div>
           </div>
         </div>
 

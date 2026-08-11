@@ -42,6 +42,11 @@ class Profile(Base):
     linkedin_url = Column(String(500), nullable=True)
     leetcode_url = Column(String(500), nullable=True)
 
+    # Role (optional): backend_developer | frontend_developer | fullstack_developer |
+    # ml_engineer | cloud_engineer | devops_engineer | mobile_developer |
+    # data_engineer | cybersecurity | other
+    role = Column(String(100), nullable=True)
+
     # Profile picture (public URL served from /uploads/avatars)
     avatar_url = Column(String(500), nullable=True)
 

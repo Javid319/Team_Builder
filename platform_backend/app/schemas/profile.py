@@ -25,6 +25,7 @@ class ProfileCreate(BaseModel):
     linkedin_url: Optional[str] = None
     leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
+    role: Optional[str] = None           # e.g. backend_developer, ml_engineer, other
     availability: Optional[AvailabilityCreate] = None   # nested, created together
 
 
@@ -42,6 +43,7 @@ class ProfileUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
+    role: Optional[str] = None
     availability: Optional[AvailabilityCreate] = None
 
 
@@ -62,6 +64,7 @@ class ProfileOut(BaseModel):
     leetcode_url: Optional[str]
     avatar_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel]
+    role: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

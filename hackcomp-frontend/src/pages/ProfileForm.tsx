@@ -14,12 +14,26 @@ const emptyForm = {
   department: '',
   year_of_study: 1,
   experience_level: 'beginner',
+  role: '',
   state: '',
   city: '',
   github_url: '',
   linkedin_url: '',
   leetcode_url: '',
 };
+
+const ROLE_OPTIONS = [
+  { value: 'backend_developer', label: 'Backend Developer' },
+  { value: 'frontend_developer', label: 'Frontend Developer' },
+  { value: 'fullstack_developer', label: 'Full Stack Developer' },
+  { value: 'ml_engineer', label: 'ML Engineer' },
+  { value: 'cloud_engineer', label: 'Cloud Engineer' },
+  { value: 'devops_engineer', label: 'DevOps Engineer' },
+  { value: 'mobile_developer', label: 'Mobile Developer' },
+  { value: 'data_engineer', label: 'Data Engineer' },
+  { value: 'cybersecurity', label: 'Cybersecurity' },
+  { value: 'other', label: 'Other' },
+];
 
 const emptyAvailability = {
   working_days: [] as string[],
@@ -51,6 +65,7 @@ const ProfileForm = () => {
             department: res.data.department || '',
             year_of_study: res.data.year_of_study || 1,
             experience_level: res.data.experience_level || 'beginner',
+            role: res.data.role || '',
             state: res.data.state || '',
             city: res.data.city || '',
             github_url: res.data.github_url || '',
@@ -210,6 +225,16 @@ const ProfileForm = () => {
                 <label className="form-label">Course</label>
                 <input type="text" name="course" className="form-control" value={formData.course} onChange={handleChange} />
               </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select name="role" className="form-control" value={formData.role} onChange={handleChange}>
+                <option value="">Select a role (optional)</option>
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
             </div>
 
             <div className="divider" />

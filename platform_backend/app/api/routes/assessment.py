@@ -7,6 +7,7 @@ GET  /assessment/results   — return latest completed session results
 GET  /assessment/sessions  — list all assessment sessions for the user
 """
 import json
+import logging
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -29,8 +30,11 @@ from app.schemas.assessment import (
     SkillResult,
 )
 from app.services.skill_confidence.groq_client import generate_questions, evaluate_answers
+from app.services.candidate_profile import update_ability_from_assessment
 
 router = APIRouter(prefix="/assessment", tags=["Skill Assessment"])
+
+logger = logging.getLogger(__name__)
 
 
 # ── helpers ────────────────────────────────────────────────────
@@ -160,6 +164,19 @@ def submit_assessment(
     session.completed_at  = datetime.now(timezone.utc)
     db.commit()
     db.refresh(session)
+
+    # Sync assessment results into the candidate profile's ability section.
+    # Read-only on result_json — never writes to the skills table.
+    try:
+        ability_scores = {
+            skill.get("name"): skill.get("confidence_score")
+            for skill in json.loads(session.result_json or "[]")
+            if skill.get("name")
+        }
+        if ability_scores:
+            update_ability_from_assessment(db, current_user.id, ability_scores)
+    except Exception:
+        logger.exception("Failed to sync assessment results into candidate profile")
 
     return AssessmentResultOut(
         session_id=session.id,

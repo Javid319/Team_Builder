@@ -50,6 +50,7 @@ from app.schemas.collaboration import (
 )
 from app.schemas.team_recommendation import TeamRecommendationOut
 from app.services.team_recommendations import generate_report
+from app.services.candidate_profile import update_teamwork_from_collaboration
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +290,12 @@ def submit_assessment(
 
     db.commit()
     db.refresh(session)
+
+    # Sync collaboration dimension scores into the candidate profile's
+    # teamwork section ({dimension: percentage}).
+    teamwork_scores = {s.dimension.value.lower(): s.percentage for s in scores}
+    if teamwork_scores:
+        update_teamwork_from_collaboration(db, current_user.id, teamwork_scores)
 
     return CollaborationResultOut(
         assessment_id=session.id,

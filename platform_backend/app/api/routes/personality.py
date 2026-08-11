@@ -12,6 +12,7 @@ from app.models.personality import Personality
 from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.personality import PersonalityOut, PersonalitySubmitOut
+from app.services.candidate_profile import update_behavior_from_personality
 
 router = APIRouter(prefix="/personality", tags=["Personality Assessment"])
 
@@ -107,6 +108,10 @@ def submit_assessment(payload: PersonalitySubmitIn, current_user: User = Depends
     personality.completed_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(personality)
+
+    # Sync personality scores into the candidate profile's behavior section.
+    update_behavior_from_personality(db, current_user.id, evaluation["scores"])
+
     return {"result": personality, "strengths": evaluation["strengths"]}
 
 
