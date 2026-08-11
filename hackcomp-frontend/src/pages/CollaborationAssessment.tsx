@@ -54,7 +54,7 @@ const CollaborationAssessment = () => {
         <h2>Collaboration Profile Generated!</h2>
         <div className="dashboard-grid mt-3">
           {result.dimension_scores?.map((d: any) => (
-            <div key={d.dimension} style={{ padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
+            <div key={d.dimension} style={{ padding: '1rem', background: 'var(--surface-2)', borderRadius: '8px' }}>
               <div className="flex-between mb-1">
                 <h4 style={{ textTransform: 'capitalize', color: 'var(--primary)', margin: 0 }}>
                   {d.dimension.replace(/_/g, ' ')}

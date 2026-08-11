@@ -17,17 +17,17 @@ const ResumeUpload: React.FC<Props> = ({ file, setFile }) => {
       <div className="card-header">
         <h3 className="card-title">Upload Resume PDF</h3>
       </div>
-      
-      <input 
-        type="file" 
-        accept="application/pdf" 
+
+      <input
+        type="file"
+        accept="application/pdf"
         onChange={handleFileChange}
         style={{ display: 'none' }}
         id="resume-upload"
       />
 
-      <label 
-        htmlFor="resume-upload" 
+      <label
+        htmlFor="resume-upload"
         className={`upload-zone ${file ? 'has-file' : ''}`}
         style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
       >

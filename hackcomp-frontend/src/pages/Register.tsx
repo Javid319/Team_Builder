@@ -21,8 +21,8 @@ const Register = () => {
       const loginRes = await api.login({ email, password });
       if (loginRes.data.access_token) {
         localStorage.setItem('access_token', loginRes.data.access_token);
-        localStorage.setItem('onboarding_step', 'welcome');
-        navigate('/onboarding');
+        localStorage.setItem('onboarding_step', 'profile');
+        navigate('/onboarding/profile');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Registration failed. Please try again.');

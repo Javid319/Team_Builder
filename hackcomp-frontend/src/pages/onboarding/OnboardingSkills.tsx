@@ -61,8 +61,8 @@ const OnboardingSkills = () => {
   };
 
   const handleContinue = () => {
-    localStorage.setItem('onboarding_step', 'verify');
-    navigate('/onboarding/verify');
+    localStorage.setItem('onboarding_step', 'complete');
+    navigate('/dashboard');
   };
 
   return (
@@ -71,7 +71,7 @@ const OnboardingSkills = () => {
         {/* Workspace Header */}
         <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
           <div className="flex items-center gap-2 mb-1">
-            <span className="badge badge-primary">Step 3 of 5</span>
+            <span className="badge badge-primary">Step 2 of 2</span>
             <span className="text-xs text-subtle">Technology Stack</span>
           </div>
           <h1 style={{ fontSize: '22px', marginBottom: '4px' }}>Add Technical Skills</h1>
@@ -92,11 +92,11 @@ const OnboardingSkills = () => {
                   onClick={handleContinue}
                   className="btn btn-primary btn-full btn-lg"
                 >
-                  Continue to Skill Verification ({skillCount} skills added) <ArrowRight size={15} />
+                  Save & Go to Dashboard ({skillCount} skills added) <ArrowRight size={15} />
                 </button>
               ) : (
                 <div className="alert alert-warning text-center justify-center">
-                  Add at least one skill to enable verification step
+                  Add at least one skill to continue to your dashboard
                 </div>
               )}
             </div>

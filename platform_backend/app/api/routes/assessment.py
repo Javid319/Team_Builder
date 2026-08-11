@@ -1,7 +1,7 @@
 """
 Skill Assessment routes.
 
-POST /assessment/start     — generate 7 questions via Groq, create session
+POST /assessment/start     — generate 10 questions via Groq, create session
 POST /assessment/submit    — save answers, evaluate with Groq, write skills to DB
 GET  /assessment/results   — return latest completed session results
 GET  /assessment/sessions  — list all assessment sessions for the user
@@ -61,7 +61,7 @@ def start_assessment(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Generate 7 questions via Groq based on intermediate experience level.
+    Generate 10 questions via Groq based on intermediate experience level.
     Requires authentication.
     """
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()

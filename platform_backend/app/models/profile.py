@@ -30,11 +30,20 @@ class Profile(Base):
     college = Column(String(255), nullable=True)
     degree = Column(String(255), nullable=True)
     course = Column(String(255), nullable=True)
+    department = Column(String(255), nullable=True)
     year_of_study = Column(Integer, nullable=True)
+
+    # Location
+    state = Column(String(255), nullable=True)
+    city = Column(String(255), nullable=True)
 
     # Links
     github_url = Column(String(500), nullable=True)
     linkedin_url = Column(String(500), nullable=True)
+    leetcode_url = Column(String(500), nullable=True)
+
+    # Profile picture (public URL served from /uploads/avatars)
+    avatar_url = Column(String(500), nullable=True)
 
     # Experience
     experience_level = Column(SAEnum(ExperienceLevel), nullable=True)

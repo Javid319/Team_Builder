@@ -17,9 +17,13 @@ class ProfileCreate(BaseModel):
     college: Optional[str] = None
     degree: Optional[str] = None
     course: Optional[str] = None
+    department: Optional[str] = None
     year_of_study: Optional[int] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
+    leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
     availability: Optional[AvailabilityCreate] = None   # nested, created together
 
@@ -30,9 +34,13 @@ class ProfileUpdate(BaseModel):
     college: Optional[str] = None
     degree: Optional[str] = None
     course: Optional[str] = None
+    department: Optional[str] = None
     year_of_study: Optional[int] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
     github_url: Optional[str] = None
     linkedin_url: Optional[str] = None
+    leetcode_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel] = None
     availability: Optional[AvailabilityCreate] = None
 
@@ -45,9 +53,14 @@ class ProfileOut(BaseModel):
     college: Optional[str]
     degree: Optional[str]
     course: Optional[str]
+    department: Optional[str]
     year_of_study: Optional[int]
+    state: Optional[str]
+    city: Optional[str]
     github_url: Optional[str]
     linkedin_url: Optional[str]
+    leetcode_url: Optional[str]
+    avatar_url: Optional[str] = None
     experience_level: Optional[ExperienceLevel]
     created_at: datetime
     updated_at: datetime

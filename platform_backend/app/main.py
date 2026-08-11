@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.core.config import settings
 import app.db.base  # noqa: F401 — registers all models with SQLAlchemy mapper
@@ -12,6 +14,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# ── Static uploads (avatars, resumes) ─────────────────────────
+uploads_root = Path(settings.upload_dir).resolve().parent
+uploads_root.mkdir(parents=True, exist_ok=True)
+Path(settings.avatar_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(uploads_root)), name="uploads")
 
 # ── CORS ──────────────────────────────────────────────────────
 app.add_middleware(

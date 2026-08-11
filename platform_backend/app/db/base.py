@@ -27,3 +27,4 @@ from app.models.collaboration import (                              # noqa: F401
     CollaborationAssessmentQuestion,
     CollaborationAnswer,
 )
+from app.models.team_recommendation import TeamRecommendation       # noqa: F401, E402

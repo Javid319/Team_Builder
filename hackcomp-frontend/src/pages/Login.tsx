@@ -19,16 +19,21 @@ const Login = () => {
       const res = await api.login({ email, password });
       if (res.data.access_token) {
         localStorage.setItem('access_token', res.data.access_token);
-        try {
-          const profileRes = await api.getProfile();
-          if (profileRes.data?.id) {
-            localStorage.setItem('onboarding_step', 'complete');
-            navigate('/dashboard');
-            return;
-          }
-        } catch { /* no profile yet */ }
-        localStorage.setItem('onboarding_step', 'welcome');
-        navigate('/onboarding/profile');
+        const [profileRes, skillsRes] = await Promise.all([
+          api.getProfile().catch(() => ({ data: null })),
+          api.getSkills().catch(() => ({ data: [] })),
+        ]);
+        const hasProfile = !!profileRes.data?.id;
+        const hasSkills = Array.isArray(skillsRes.data) && skillsRes.data.length > 0;
+
+        if (hasProfile && hasSkills) {
+          localStorage.setItem('onboarding_step', 'complete');
+          navigate('/dashboard');
+          return;
+        }
+
+        localStorage.setItem('onboarding_step', hasProfile ? 'skills' : 'profile');
+        navigate(hasProfile ? '/onboarding/skills' : '/onboarding/profile');
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Invalid email or password.');

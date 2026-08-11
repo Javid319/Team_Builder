@@ -2,7 +2,7 @@
 Groq AI client for Skill Assessment.
 
 Two responsibilities:
-1. generate_questions()  — produce 7 fresh questions based on experience level
+1. generate_questions()  — produce 10 fresh questions based on experience level
 2. evaluate_answers()    — score the user's answers and return detected skills
 """
 import json
@@ -93,22 +93,22 @@ _rotator = GroqKeyRotator(settings.groq_api_keys_list)
 _GENERATE_PROMPT = """
 You are a senior software engineer creating a coding skill assessment.
 
-Generate exactly 7 coding/technical questions for a {level} developer.
+Generate exactly 10 coding/technical questions for a {level} developer.
 The user's technical skills are: {skills}.
 
 STRICT RULES:
-- ALL 7 questions MUST be from the skills listed above. No exceptions.
+- ALL 10 questions MUST be from the skills listed above. No exceptions.
 - Only ask about programming languages, frameworks, databases, tools, and technologies.
 - Do NOT ask about soft skills, hobbies, sports, arts, dancing, music, or any non-technical topic.
 - If a listed skill is not a technical/programming topic (e.g. "dancing", "cooking"), IGNORE it completely.
 - If after filtering there are fewer than 2 valid technical skills, ask general Python, JavaScript, SQL, Git, REST API questions instead.
-- Spread questions across different skills — do NOT ask all 7 about the same technology.
+- Spread questions across different skills — do NOT ask all 10 about the same technology.
 
 Question type distribution (use all four types):
-- 2 × fill_in_code   : show code with one blank line marked __BLANK__, ask user to fill it
-- 2 × debug          : show code with 1–2 bugs, ask user to identify and fix them
+- 3 × fill_in_code   : show code with one blank line marked __BLANK__, ask user to fill it
+- 3 × debug          : show code with 1–2 bugs, ask user to identify and fix them
 - 2 × mcq            : multiple choice with 4 options (a/b/c/d), one correct answer
-- 1 × predict_output : show a short code snippet, ask what it prints/returns
+- 2 × predict_output : show a short code snippet, ask what it prints/returns
 
 Difficulty: {level}
 - beginner:     basic syntax, simple functions, basic SQL SELECT, simple Git commands
@@ -137,7 +137,7 @@ You are a senior software engineer evaluating a developer's skill assessment.
 
 Experience level: {level}
 
-Here are the 7 questions and the user's answers:
+Here are the 10 questions and the user's answers:
 {qa_pairs}
 
 STRICT SCORING RULES:
@@ -153,7 +153,7 @@ Return ONLY a valid JSON array — no markdown, no explanation. Schema:
     "name": "AWS",
     "confidence_score": 29.00,
     "confidence_level": "low",
-    "evidence_text": "Correctly answered 2 out of 7 questions, rest were unanswered"
+    "evidence_text": "Correctly answered 4 out of 10 questions, rest were unanswered"
   }}
 ]
 
@@ -191,7 +191,7 @@ def _filter_technical_skills(skills: list[str]) -> list[str]:
 
 def generate_questions(experience_level: str, skills: list[str] | None = None) -> list[dict[str, Any]]:
     """
-    Call Groq to generate 7 assessment questions focused on the user's technical skills.
+    Call Groq to generate 10 assessment questions focused on the user's technical skills.
     Non-technical skills (hobbies, soft skills) are filtered out before sending to Groq.
     Returns a list of question dicts.
     """

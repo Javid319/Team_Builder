@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api/v1';
+const SERVER_URL = 'http://localhost:8000';
+const API_URL = `${SERVER_URL}/api/v1`;
 
 const apiClient = axios.create({
   baseURL: API_URL,
@@ -16,6 +17,13 @@ apiClient.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Build a cache-busting absolute URL for a server-relative asset (e.g. /uploads/avatars/x.png)
+export const assetUrl = (relativeUrl?: string | null): string | null => {
+  if (!relativeUrl) return null;
+  const sep = relativeUrl.includes('?') ? '&' : '?';
+  return `${SERVER_URL}${relativeUrl}${sep}_=${Date.now()}`;
+};
 
 export const api = {
   // Auth
@@ -33,6 +41,13 @@ export const api = {
   uploadResume: (formData: FormData) => apiClient.post('/profile/resume', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  getVerificationStatus: () => apiClient.get('/profile/verification-status'),
+
+  // Avatar
+  uploadAvatar: (formData: FormData) => apiClient.post('/profile/avatar', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  removeAvatar: () => apiClient.delete('/profile/avatar'),
 
   // Skill Assessment
   startSkillAssessment: () => apiClient.post('/assessment/start'),
@@ -45,6 +60,10 @@ export const api = {
   submitCollabAssessment: (data: any) => apiClient.post('/collaboration/submit', data),
   getCollabResult: () => apiClient.get('/collaboration/result'),
   getCollabStatus: () => apiClient.get('/collaboration/status'),
+
+  // AI-powered team recommendations
+  getRecommendations: () => apiClient.get('/collaboration/recommendations'),
+  generateRecommendations: () => apiClient.post('/collaboration/recommendations'),
 
   // Personality Assessment
   startPersonalityAssessment: () => apiClient.get('/personality/start'),

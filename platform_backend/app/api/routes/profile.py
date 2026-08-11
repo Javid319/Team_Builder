@@ -31,6 +31,17 @@ def _get_profile_or_404(user_id: uuid.UUID, db: Session) -> Profile:
     return profile
 
 
+def _get_or_create_profile(user_id: uuid.UUID, db: Session) -> Profile:
+    """Return the user's profile, creating a bare one if it doesn't exist yet."""
+    profile = db.query(Profile).filter(Profile.user_id == user_id).first()
+    if profile:
+        return profile
+    profile = Profile(user_id=user_id, name="Developer")
+    db.add(profile)
+    db.flush()
+    return profile
+
+
 def _upsert_availability(profile: Profile, avail_data, db: Session) -> None:
     """Create or update the availability record linked to this profile."""
     if avail_data is None:
@@ -283,6 +294,126 @@ async def upload_resume(
         
     db.refresh(resume)
     return resume
+
+
+# ── Resume & GitHub verification status ──────────────────────
+@router.get("/verification-status")
+def get_verification_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Lightweight check used by the Developer Hub completion ring:
+    has the user run the Resume & GitHub verification flow?
+    """
+    from app.models.resume_verification import ResumeVerification
+
+    latest = (
+        db.query(ResumeVerification)
+        .filter(ResumeVerification.user_id == current_user.id)
+        .order_by(ResumeVerification.verified_at.desc())
+        .first()
+    )
+    return {
+        "completed": latest is not None,
+        "status": latest.status if latest else None,
+        "completed_at": latest.verified_at.isoformat() if latest else None,
+        "matched_count": latest.matched_count if latest else 0,
+        "verification_percentage": (
+            float(latest.verification_percentage) if latest and latest.verification_percentage is not None else 0
+        ),
+    }
+
+
+# ── Avatar ────────────────────────────────────────────────────
+_ALLOWED_AVATAR_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+    "image/gif": ".gif",
+}
+
+
+def _avatar_file_path(profile: Profile) -> Path | None:
+    """Resolve the on-disk path of a profile's avatar from its avatar_url."""
+    if not profile.avatar_url:
+        return None
+    name = Path(profile.avatar_url).name
+    avatar_dir = Path(settings.avatar_dir)
+    candidate = avatar_dir / name
+    return candidate if candidate.exists() else None
+
+
+@router.post("/avatar", response_model=ProfileOut)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload (or replace) the authenticated user's profile picture."""
+    if file.content_type not in _ALLOWED_AVATAR_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PNG, JPEG, WebP or GIF images are accepted",
+        )
+
+    contents = await file.read()
+    max_bytes = settings.max_avatar_size_mb * 1024 * 1024
+    if len(contents) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Image exceeds maximum allowed size of {settings.max_avatar_size_mb} MB",
+        )
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded file is empty",
+        )
+
+    profile = _get_or_create_profile(current_user.id, db)
+
+    ext = _ALLOWED_AVATAR_TYPES[file.content_type]
+    avatar_dir = Path(settings.avatar_dir)
+    avatar_dir.mkdir(parents=True, exist_ok=True)
+    unique_name = f"{current_user.id}_{uuid.uuid4().hex}{ext}"
+    file_path = avatar_dir / unique_name
+
+    with open(file_path, "wb") as f:
+        f.write(contents)
+
+    # Replace an existing avatar (delete the old file on disk)
+    old_path = _avatar_file_path(profile)
+    if old_path and old_path != file_path:
+        try:
+            old_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    profile.avatar_url = f"/uploads/avatars/{unique_name}"
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+@router.delete("/avatar", response_model=ProfileOut)
+def remove_avatar(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove the authenticated user's profile picture."""
+    profile = _get_profile_or_404(current_user.id, db)
+
+    old_path = _avatar_file_path(profile)
+    if old_path:
+        try:
+            old_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    profile.avatar_url = None
+    db.commit()
+    db.refresh(profile)
+    return profile
 
 
 # ── Get Profile ───────────────────────────────────────────────

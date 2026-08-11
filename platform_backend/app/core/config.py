@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     # File Upload
     upload_dir: str = "uploads/resumes"
     max_upload_size_mb: int = 5
+    avatar_dir: str = "uploads/avatars"
+    max_avatar_size_mb: int = 5
 
     # CORS
     allowed_origins: str = "http://localhost:8000"

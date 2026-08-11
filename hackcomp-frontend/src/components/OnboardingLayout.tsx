@@ -4,21 +4,18 @@ import { Check, LogOut, Shield } from 'lucide-react';
 import BrandLogo from './BrandLogo';
 
 interface OnboardingLayoutProps {
-  currentStep: 'welcome' | 'profile' | 'skills' | 'verify' | 'assessment' | 'resume_verify';
+  currentStep: 'profile' | 'skills';
   children: React.ReactNode;
 }
 
 const STEPS = [
-  { id: 'welcome',       label: '1. Welcome',       title: 'Overview',      desc: 'Hackathon platform context' },
-  { id: 'profile',       label: '2. Profile',       title: 'Developer Info',desc: 'Education & social links' },
-  { id: 'skills',        label: '3. Skills',        title: 'Tech Stack',    desc: 'Declare known technologies' },
-  { id: 'verify',        label: '4. Verify',        title: 'Validation',    desc: 'Select verification path' },
-  { id: 'assessment',    label: '5. Assessment',    title: 'Evaluation',    desc: 'AI test or GitHub check' },
+  { id: 'profile', label: '1. Profile', title: 'Developer Profile', desc: 'Personal, links & availability' },
+  { id: 'skills',  label: '2. Skills',  title: 'Tech Stack',        desc: 'Declare known technologies' },
 ];
 
 const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ currentStep, children }) => {
   const navigate = useNavigate();
-  const currentIdx = STEPS.findIndex(s => s.id === (currentStep === 'resume_verify' ? 'assessment' : currentStep));
+  const currentIdx = STEPS.findIndex(s => s.id === currentStep);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -41,7 +38,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ currentStep, childr
           {/* Step Progress */}
           <div className="sidebar-steps">
             {STEPS.map((step, idx) => {
-              const isActive = step.id === currentStep || (currentStep === 'resume_verify' && step.id === 'assessment');
+              const isActive = step.id === currentStep;
               const isCompleted = currentIdx > idx;
               const stateClass = isCompleted ? 'completed' : isActive ? 'active' : '';
               return (
@@ -64,7 +61,7 @@ const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({ currentStep, childr
           <div className="card card-sm mb-3" style={{ background: 'var(--surface-2)' }}>
             <div className="flex items-center gap-2 text-xs text-subtle">
               <Shield size={13} color="var(--primary)" />
-              <span>Skill Verification Active</span>
+              <span>Profile Setup Active</span>
             </div>
           </div>
 

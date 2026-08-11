@@ -1,21 +1,22 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import ProfilePage from './pages/ProfilePage';
 import ProfileForm from './pages/ProfileForm';
 import SkillAssessment from './pages/SkillAssessment';
-import CollaborationAssessment from './pages/CollaborationAssessment';
-import PersonalityAssessment from './pages/PersonalityAssessment';
-import Onboarding from './pages/onboarding/Onboarding';
+import ResumeVerification from './pages/ResumeVerification';
+import TeamAssessment from './pages/TeamAssessment';
 import OnboardingProfile from './pages/onboarding/OnboardingProfile';
 import OnboardingSkills from './pages/onboarding/OnboardingSkills';
-import VerifySkills from './pages/onboarding/VerifySkills';
-import ResumeVerification from './pages/onboarding/ResumeVerification';
-import OnboardingLayout from './components/OnboardingLayout';
 import BrandLogo from './components/BrandLogo';
-import { LogOut } from 'lucide-react';
+import Avatar from './components/Avatar';
+import { api } from './api';
+import { getInitialTheme, applyTheme } from './utils/theme';
+import type { Theme } from './utils/theme';
+import { LogOut, User, Sun, Moon } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────────
 const isLoggedIn = () => !!localStorage.getItem('access_token');
@@ -27,11 +28,7 @@ const AppGuard = ({ children }: { children: React.ReactNode }) => {
   if (!onboardingDone()) {
     const step = localStorage.getItem('onboarding_step');
     switch (step) {
-      case 'profile':     return <Navigate to="/onboarding/profile" replace />;
       case 'skills':      return <Navigate to="/onboarding/skills" replace />;
-      case 'verify':      return <Navigate to="/onboarding/verify" replace />;
-      case 'assessment':  return <Navigate to="/onboarding/assessment" replace />;
-      case 'resume_verify': return <Navigate to="/onboarding/resume" replace />;
       default:            return <Navigate to="/onboarding/profile" replace />;
     }
   }
@@ -45,26 +42,41 @@ const OnboardingStepGuard = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// ── Onboarding assessment wrapper ────────────────────────────
-const OnboardingAssessment = () => {
-  const navigate = useNavigate();
-  const handleComplete = () => {
-    localStorage.setItem('onboarding_step', 'complete');
-    localStorage.setItem('evaluation_method', 'assessment');
-    navigate('/dashboard');
-  };
-  return (
-    <OnboardingLayout currentStep="assessment">
-      <SkillAssessment onComplete={handleComplete} />
-    </OnboardingLayout>
-  );
-};
-
 // ── Top navigation bar ────────────────────────────────────────
 const Navigation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = localStorage.getItem('access_token');
+
+  const [profile, setProfile] = useState<any>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme());
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleToggleTheme = () => {
+    const next: Theme = theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    setTheme(next);
+  };
+
+  // Load profile for the avatar in the navbar
+  useEffect(() => {
+    if (!token) return;
+    api.getProfile()
+      .then((res) => setProfile(res.data))
+      .catch(() => setProfile(null));
+  }, [token, location.pathname]);
+
+  // Close the menu when clicking outside
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -82,16 +94,58 @@ const Navigation = () => {
       <Link to="/dashboard" className="navbar-brand">
         <BrandLogo />
       </Link>
-      <div className="nav-links">
-        <Link to="/dashboard" className={`nav-link ${location.pathname === '/dashboard' ? 'active' : ''}`}>
-          Dashboard
-        </Link>
-        <Link to="/profile" className={`nav-link ${location.pathname === '/profile' ? 'active' : ''}`}>
-          Profile
-        </Link>
-        <button onClick={handleLogout} className="btn btn-ghost btn-sm" style={{ marginLeft: '8px' }}>
-          <LogOut size={14} /> Sign out
+
+      <div className="navbar-right" ref={menuRef}>
+        <button
+          type="button"
+          className={`navbar-avatar-btn ${menuOpen ? 'open' : ''}`}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-label="Account menu"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+        >
+          <Avatar name={profile?.name} avatarUrl={profile?.avatar_url} size={34} />
         </button>
+
+        {menuOpen && (
+          <div className="user-menu" role="menu">
+            <div className="user-menu-head">
+              <Avatar name={profile?.name} avatarUrl={profile?.avatar_url} size={36} />
+              <div className="flex flex-col" style={{ minWidth: 0 }}>
+                <span className="user-menu-name">{profile?.name || 'Developer'}</span>
+                <span className="text-subtle text-xs" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {profile?.college || 'Developer profile'}
+                </span>
+              </div>
+            </div>
+
+            <Link to="/profile/edit" className="user-menu-item" role="menuitem" onClick={() => setMenuOpen(false)}>
+              <User size={15} /> Edit Profile
+            </Link>
+
+            <button
+              type="button"
+              className="user-menu-item theme-toggle-row"
+              role="switch"
+              aria-checked={theme === 'light'}
+              onClick={handleToggleTheme}
+            >
+              {theme === 'light' ? <Sun size={15} /> : <Moon size={15} />}
+              <span style={{ flex: 1 }}>{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</span>
+              <span className={`theme-toggle ${theme === 'light' ? 'on' : ''}`}>
+                <span className="theme-toggle-track">
+                  <span className="theme-toggle-thumb" />
+                </span>
+              </span>
+            </button>
+
+            <div className="divider" style={{ margin: '6px 0' }} />
+
+            <button type="button" className="user-menu-item" role="menuitem" onClick={handleLogout}>
+              <LogOut size={15} /> Sign out
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
@@ -113,12 +167,6 @@ function App() {
           } />
 
           {/* ── Landing / auth ── */}
-          {/* Onboarding welcome — visible to everyone (no auth needed) */}
-          <Route path="/onboarding" element={
-            isLoggedIn() && onboardingDone()
-              ? <Navigate to="/dashboard" replace />
-              : <Onboarding />
-          } />
           <Route path="/login" element={
             isLoggedIn() && onboardingDone()
               ? <Navigate to="/dashboard" replace />
@@ -137,22 +185,16 @@ function App() {
           <Route path="/onboarding/skills" element={
             <OnboardingStepGuard><OnboardingSkills /></OnboardingStepGuard>
           } />
-          <Route path="/onboarding/verify" element={
-            <OnboardingStepGuard><VerifySkills /></OnboardingStepGuard>
-          } />
-          <Route path="/onboarding/assessment" element={
-            <OnboardingStepGuard><OnboardingAssessment /></OnboardingStepGuard>
-          } />
-          <Route path="/onboarding/resume" element={
-            <OnboardingStepGuard><ResumeVerification /></OnboardingStepGuard>
-          } />
 
           {/* ── App routes (require login + onboarding complete) ── */}
           <Route path="/dashboard" element={<AppGuard><Dashboard /></AppGuard>} />
-          <Route path="/profile" element={<AppGuard><ProfileForm /></AppGuard>} />
+          <Route path="/profile" element={<AppGuard><ProfilePage /></AppGuard>} />
+          <Route path="/profile/edit" element={<AppGuard><ProfileForm /></AppGuard>} />
+          <Route path="/verification" element={<AppGuard><ResumeVerification /></AppGuard>} />
           <Route path="/assessment" element={<AppGuard><SkillAssessment /></AppGuard>} />
-          <Route path="/collaboration" element={<AppGuard><CollaborationAssessment /></AppGuard>} />
-          <Route path="/personality" element={<AppGuard><PersonalityAssessment /></AppGuard>} />
+          <Route path="/test" element={<AppGuard><TeamAssessment /></AppGuard>} />
+          <Route path="/personality" element={<Navigate to="/test" replace />} />
+          <Route path="/collaboration" element={<Navigate to="/test" replace />} />
         </Routes>
       </div>
     </Router>
