@@ -22,6 +22,7 @@ from app.db.session import SessionLocal
 from app.models.user import User
 from app.models.profile import Profile
 from app.models.candidate_profile import CandidateProfile
+from app.models.team import Team, TeamInvitation, TeamMember
 
 client = TestClient(app)
 
@@ -38,6 +39,11 @@ def make_user(name: str):
         json={"email": email, "password": PASSWORD, "full_name": name},
     )
     assert r.status_code == 201, r.text
+    r = client.post(
+        "/api/v1/auth/login",
+        json={"email": email, "password": PASSWORD},
+    )
+    assert r.status_code == 200, r.text
     token = r.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
     me = client.get("/api/v1/auth/me", headers=headers)
@@ -84,7 +90,15 @@ def add_candidate_signal(user_id: str, name: str, role: str = "ml_engineer"):
 
 def cleanup():
     db = SessionLocal()
-    users = db.query(User).filter(User.id.in_([uuid.UUID(uid) for uid in registered_ids])).all()
+    ids = [uuid.UUID(uid) for uid in registered_ids]
+    db.query(TeamInvitation).filter(
+        TeamInvitation.sender_id.in_(ids) | TeamInvitation.receiver_id.in_(ids)
+    ).delete(synchronize_session=False)
+    db.query(TeamMember).filter(TeamMember.user_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db.query(Team).filter(Team.owner_id.in_(ids)).delete(synchronize_session=False)
+    users = db.query(User).filter(User.id.in_(ids)).all()
     for user in users:
         db.delete(user)
     db.commit()
@@ -153,7 +167,7 @@ def main():
         add_candidate_signal(alice_id, "Alice")
         r = client.get(
             "/api/v1/recommendations/members",
-            params={"team_id": team_id},
+            params={"team_id": team_id, "limit": 50},
             headers=owner_h,
         )
         rec_users = {rec["user_id"] for rec in r.json()}

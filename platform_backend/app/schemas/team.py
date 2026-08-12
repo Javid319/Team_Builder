@@ -81,6 +81,7 @@ class TeamOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     members: list[TeamMemberOut] = []
+    member_count: int = 0
     owner: Optional[TeamMemberOut] = None
 
 

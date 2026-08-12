@@ -148,5 +148,6 @@ def build_team_out(db: Session, team: Team) -> TeamOut:
         created_at=team.created_at,
         updated_at=team.updated_at,
         members=member_outs,
+        member_count=len(member_outs),
         owner=owner_out,
     )

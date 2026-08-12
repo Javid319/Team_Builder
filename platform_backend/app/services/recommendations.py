@@ -17,11 +17,18 @@ from __future__ import annotations
 import uuid
 from typing import Dict, List, Optional, Set
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.candidate_profile import CandidateProfile
 from app.models.profile import Profile
-from app.models.team import InvitationStatus, Team, TeamMember, TeamStatus
+from app.models.team import (
+    InvitationStatus,
+    Team,
+    TeamInvitation,
+    TeamMember,
+    TeamStatus,
+)
 from app.models.user import User
 from app.schemas.team import MemberRecommendation
 from app.services.team import TeamNotFoundError, get_team_by_id
@@ -172,18 +179,22 @@ def recommend_members(
     team_member_ids = {m.user_id for m in team.members}
 
     full_team_user_ids = set(
-        db.query(TeamMember.user_id)
-        .join(Team, Team.id == TeamMember.team_id)
-        .filter(Team.status == TeamStatus.FULL)
+        db.execute(
+            select(TeamMember.user_id)
+            .join(Team, Team.id == TeamMember.team_id)
+            .filter(Team.status == TeamStatus.FULL)
+        )
         .scalars()
         .all()
     )
 
     pending_receiver_ids = set(
-        db.query(TeamInvitation.receiver_id)
-        .filter(
-            TeamInvitation.team_id == team_id,
-            TeamInvitation.status == InvitationStatus.PENDING,
+        db.execute(
+            select(TeamInvitation.receiver_id)
+            .filter(
+                TeamInvitation.team_id == team_id,
+                TeamInvitation.status == InvitationStatus.PENDING,
+            )
         )
         .scalars()
         .all()
