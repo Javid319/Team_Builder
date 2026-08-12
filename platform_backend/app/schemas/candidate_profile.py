@@ -25,3 +25,21 @@ class CandidateProfileOut(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class CandidateListItem(BaseModel):
+    """Candidate browse row: candidate_profiles data joined with profile fields.
+
+    `bio` is synthesized server-side from the profile (no dedicated column).
+    `profile_data` mirrors the Phase 1 contract (role, ability, behavior,
+    evidence, teamwork, experience, availability).
+    """
+    id: uuid.UUID
+    name: str
+    avatar_url: Optional[str] = None
+    college: Optional[str] = None
+    city: Optional[str] = None
+    github_url: Optional[str] = None
+    bio: str
+    profile_data: Dict[str, Any]
+    profile_strength: int = 0

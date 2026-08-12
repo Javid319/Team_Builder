@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { api } from '../api';
 import SkillBadge from '../components/SkillBadge';
 import { getSkillBadge, loadVerifiedSkills, passedSkillNames } from '../utils/skillBadges';
+import HackathonGrid from '../components/hackathons/HackathonGrid';
 import {
-  User, Loader2, GitBranch, ExternalLink, ArrowRight, GraduationCap, MapPin,
-  Brain, ClipboardCheck, Award, Target, Sparkles, Users, Wrench,
+  User, Loader2, ArrowRight, Brain, FileText,
+  Sparkles, Users, Wrench, CheckCircle2,
 } from 'lucide-react';
 
-// ── Developer Hub completion (0 base + three action steps) ──
+// ── User Dashboard completion (0 base + three action steps) ──
 const computeCompletion = (assessmentDone: boolean, verificationDone: boolean, recommendationDone: boolean): number => {
   let pct = 0;
   if (assessmentDone) pct += 30;          // Skill Assessment
@@ -56,8 +57,49 @@ const CompletionRing = ({ percent }: { percent: number }) => {
   );
 };
 
+// ── Compact progress card (single row item) ──
+const ProgressCard = ({
+  to,
+  icon,
+  iconClass,
+  title,
+  desc,
+  done,
+  children,
+}: {
+  to?: string;
+  icon: React.ReactNode;
+  iconClass?: string;
+  title: string;
+  desc: string;
+  done?: boolean;
+  children?: React.ReactNode;
+}) => {
+  const body = (
+    <>
+      <div className={`progress-card-icon ${iconClass || ''}`}>{icon}</div>
+      <div className="progress-card-body">
+        <span className="progress-card-title">
+          {title}
+          {done && <CheckCircle2 size={14} color="var(--success)" />}
+        </span>
+        <span className="progress-card-desc">{desc}</span>
+        {children ?? (
+          <span className="progress-card-cta">
+            {done ? 'Completed' : 'Start'} <ArrowRight size={12} />
+          </span>
+        )}
+      </div>
+    </>
+  );
+  return to ? (
+    <Link to={to} className="progress-card">{body}</Link>
+  ) : (
+    <div className="progress-card">{body}</div>
+  );
+};
+
 const Dashboard = () => {
-  const [profile, setProfile] = useState<any>(null);
   const [skills, setSkills] = useState<any[]>([]);
   const [assessedNames, setAssessedNames] = useState<Set<string>>(new Set());
   const [verificationDone, setVerificationDone] = useState(false);
@@ -66,25 +108,26 @@ const Dashboard = () => {
   const [generating, setGenerating] = useState(false);
   const [widgetError, setWidgetError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [profRes, skillsRes, skillAssessRes, personStatus, collabStatus, verificationRes, recRes] = await Promise.all([
-          api.getProfile().catch(() => ({ data: null })),
+        const [skillsRes, skillAssessRes, personStatus, collabStatus, verificationRes, recRes, meRes] = await Promise.all([
           api.getSkills().catch(() => ({ data: [] })),
           api.getSkillResults().catch(() => ({ data: null })),
           api.getPersonalityStatus().catch(() => ({ data: { completed: false } })),
           api.getCollabStatus().catch(() => ({ data: { completed: false } })),
           api.getVerificationStatus().catch(() => ({ data: { completed: false } })),
           api.getRecommendations().catch(() => ({ data: null })),
+          api.getMe().catch(() => ({ data: {} })),
         ]);
-        setProfile(profRes.data);
         setSkills(skillsRes.data || []);
         setAssessedNames(passedSkillNames(skillAssessRes.data?.skills || []));
         setQuizDone(Boolean(personStatus.data?.completed) && Boolean(collabStatus.data?.completed));
         setVerificationDone(Boolean(verificationRes.data?.completed));
         setRecommendation(recRes.data);
+        setUserName(meRes.data?.full_name || '');
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
       } finally {
@@ -119,8 +162,6 @@ const Dashboard = () => {
   const assessmentDone = assessedNames.size > 0;
   const recommendationDone = Boolean(recommendation);
   const completion = computeCompletion(assessmentDone, verificationDone, recommendationDone);
-  const experience = (profile?.experience_level || '').replace(/_/g, ' ');
-  const location = [profile?.city, profile?.state].filter(Boolean).join(', ');
   const verifiedNames = loadVerifiedSkills();
   const githubVerifiedCount = skills.filter((s) => {
     const badge = getSkillBadge(s.name, assessedNames, verifiedNames);
@@ -130,14 +171,22 @@ const Dashboard = () => {
   return (
     <div className="main-workspace fade-in">
 
-      {/* ── Welcome Hero ── */}
+      {/* ── Header + Profile Completion ── */}
       <section className="dash-hero">
         <div className="dash-hero-main">
-          <div className="dash-hero-eyebrow">Developer Hub</div>
-          <h1 className="dash-hero-title">Developer Hub</h1>
+          <div className="dash-hero-eyebrow">User Dashboard</div>
+          <h1 className="dash-hero-title">Hi, {userName || 'there'}</h1>
           <p className="dash-hero-sub">
             {completionNote(completion)}
           </p>
+          <div className="flex wrap gap-2">
+            <Link to="/profile/edit" className="btn btn-outline btn-sm">
+              <User size={13} /> Edit Profile
+            </Link>
+            <Link to="/profile/edit" className="btn btn-ghost btn-sm">
+              <Wrench size={13} /> Manage Skills
+            </Link>
+          </div>
         </div>
 
         <div className="dash-hero-stats">
@@ -155,42 +204,46 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* ── Action Cards ── */}
-      <div className="grid-2 gap-4 mb-6 dash-actions">
-        <Link to="/verification" className="action-card action-card-primary">
-          <div className="action-card-top">
-            <div className="action-card-icon">
-              <GitBranch size={22} />
-            </div>
-            <span className="badge badge-neutral">Evidence-based</span>
-          </div>
-          <h3 className="action-card-title">Resume & GitHub Verification</h3>
-          <p className="action-card-desc">
-            Verify skills using resume evidence, repository analysis, imports, dependencies, topics and README content.
-          </p>
-          <span className="action-card-cta">
-            Start Verification <ArrowRight size={15} />
-          </span>
-        </Link>
-
-        <Link to="/assessment" className="action-card action-card-accent">
-          <div className="action-card-top">
-            <div className="action-card-icon" style={{ background: 'var(--warning-muted)', color: '#f59e0b' }}>
-              <Brain size={22} />
-            </div>
-            <span className="badge badge-neutral">Adaptive quiz</span>
-          </div>
-          <h3 className="action-card-title">Skill Assessment</h3>
-          <p className="action-card-desc">
-            Validate selected skills through technical assessments.
-          </p>
-          <span className="action-card-cta">
-            Take Assessment <ArrowRight size={15} />
-          </span>
-        </Link>
+      {/* ── Compact progress cards (single row) ── */}
+      <div className="dash-progress-grid">
+        <ProgressCard
+          to="/verification"
+          icon={<FileText size={20} />}
+          title="Resume & GitHub Verification"
+          desc="Verify skills using resume evidence and repository analysis"
+          done={verificationDone}
+        />
+        <ProgressCard
+          to="/assessment"
+          icon={<Brain size={20} />}
+          title="Skill Assessment"
+          desc="Validate selected skills through technical assessments"
+          done={assessmentDone}
+        />
+        <ProgressCard
+          icon={<Sparkles size={20} />}
+          iconClass="is-warning"
+          title="Improve Team Recommendations"
+          desc={recommendationDone ? 'AI report generated' : 'Unlock better team matching'}
+          done={recommendationDone}
+        >
+          {recommendationDone ? (
+            <a href="#ai-report" className="progress-card-action">
+              View Report <ArrowRight size={12} />
+            </a>
+          ) : quizDone ? (
+            <button onClick={handleGenerateReport} disabled={generating} className="progress-card-action">
+              {generating ? <><Loader2 size={12} className="spin" /> Generating...</> : <><Sparkles size={12} /> Generate AI Report</>}
+            </button>
+          ) : (
+            <Link to="/test" className="progress-card-action">
+              <Users size={12} /> Take this test
+            </Link>
+          )}
+        </ProgressCard>
       </div>
 
-      {/* ── Skills with badges ── */}
+      {/* ── Your Skills (compact) ── */}
       <section className="dash-summary mb-6">
         <div className="dash-summary-head">
           <h3 className="card-title flex items-center gap-2">
@@ -212,141 +265,57 @@ const Dashboard = () => {
         )}
       </section>
 
-      {/* ── Bottom grid: profile summary + recommendations widget ── */}
-      <div className="dash-bottom">
+      {/* ── Upcoming Hackathons (mock data) ── */}
+      <HackathonGrid limit={6} />
 
-        <section className="dash-summary">
-        <div className="dash-summary-head">
-          <h3 className="card-title flex items-center gap-2">
-            <User size={15} color="var(--primary)" /> Quick Profile Summary
-          </h3>
-          <Link to="/profile/edit" className="btn btn-ghost btn-sm">Edit Profile</Link>
-        </div>
-
-        <div className="dash-summary-grid">
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><GraduationCap size={12} /> College</span>
-            <span className="dash-summary-value">{profile?.college || 'Not set'}</span>
-          </div>
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><Award size={12} /> Degree</span>
-            <span className="dash-summary-value">{profile?.degree || 'Not set'}</span>
-          </div>
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><Target size={12} /> Department</span>
-            <span className="dash-summary-value">{profile?.department || 'Not set'}</span>
-          </div>
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><MapPin size={12} /> Location</span>
-            <span className="dash-summary-value">{location || 'Not set'}</span>
-          </div>
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><Sparkles size={12} /> Experience</span>
-            <span className="dash-summary-value" style={{ textTransform: 'capitalize' }}>
-              {experience || 'Not set'}
-            </span>
-          </div>
-          <div className="dash-summary-item">
-            <span className="dash-summary-label"><ClipboardCheck size={12} /> Skills</span>
-            <span className="dash-summary-value">{totalSkills} declared</span>
-          </div>
-        </div>
-
-        {(profile?.github_url || profile?.linkedin_url || profile?.leetcode_url) && (
-          <>
-            <div className="divider" style={{ margin: '16px 0' }} />
-            <div className="flex wrap gap-2">
-              {profile?.github_url && (
-                <a href={profile.github_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
-                  <GitBranch size={13} /> GitHub <ExternalLink size={11} />
-                </a>
-              )}
-              {profile?.linkedin_url && (
-                <a href={profile.linkedin_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
-                  <User size={13} /> LinkedIn <ExternalLink size={11} />
-                </a>
-              )}
-              {profile?.leetcode_url && (
-                <a href={profile.leetcode_url} target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm">
-                  <Target size={13} /> LeetCode <ExternalLink size={11} />
-                </a>
-              )}
-            </div>
-          </>
-        )}
-        </section>
-
-        {/* ── Improve Team Recommendations widget ── */}
-        <aside className="widget-recommend">
+      {/* ── AI team report (shown when generated) ── */}
+      {recommendationDone && (
+        <aside id="ai-report" className="widget-recommend mb-6">
           <div className="flex items-center gap-2 mb-2">
             <div className="widget-recommend-icon">
               <Sparkles size={17} />
             </div>
-            <h3 className="card-title">Improve Team Recommendations</h3>
+            <h3 className="card-title">Your AI Team Report</h3>
+            <span className="badge badge-primary flex items-center gap-1" style={{ marginLeft: 'auto' }}>
+              <Sparkles size={11} /> AI powered
+            </span>
           </div>
 
-          {recommendationDone ? (
-            <div className="ai-report">
-              <span className="badge badge-primary flex items-center gap-1">
-                <Sparkles size={11} /> AI powered
-              </span>
-              <p className="ai-report-summary">{recommendation.content.summary}</p>
+          <div className="ai-report">
+            <p className="ai-report-summary">{recommendation.content.summary}</p>
 
-              {recommendation.content.strengths?.length > 0 && (
-                <div className="ai-report-section">
-                  <h4>Strengths</h4>
-                  <ul>{recommendation.content.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-              {recommendation.content.improvements?.length > 0 && (
-                <div className="ai-report-section">
-                  <h4>Improvements</h4>
-                  <ul>{recommendation.content.improvements.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-              {recommendation.content.ideal_roles?.length > 0 && (
-                <div className="ai-report-section">
-                  <h4>Ideal Roles</h4>
-                  <ul>{recommendation.content.ideal_roles.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-              {recommendation.content.tips?.length > 0 && (
-                <div className="ai-report-section">
-                  <h4>Tips</h4>
-                  <ul>{recommendation.content.tips.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-                </div>
-              )}
-
-              {widgetError && <div className="alert alert-danger mt-2">{widgetError}</div>}
-              <button onClick={handleGenerateReport} disabled={generating} className="btn btn-ghost btn-sm mt-2">
-                {generating ? <><Loader2 size={13} className="spin" /> Regenerating...</> : 'Regenerate report'}
-              </button>
-            </div>
-          ) : quizDone ? (
-            <>
-              <p className="text-subtle mb-4">
-                Your evaluations are complete. Generate your AI-powered team fit report to finish this step.
-              </p>
-              {widgetError && <div className="alert alert-danger mb-3">{widgetError}</div>}
-              <button onClick={handleGenerateReport} disabled={generating} className="btn btn-primary btn-sm btn-full">
-                {generating ? <><Loader2 size={14} className="spin" /> Analyzing with AI...</> : <><Sparkles size={14} /> Generate AI Report</>}
-              </button>
-            </>
-          ) : (
-            <>
-              <p className="text-subtle mb-4">
-                Take this test to promote the team recommendations.
-              </p>
-              <div className="flex flex-col gap-2">
-                <Link to="/test" className="btn btn-primary btn-sm btn-full">
-                  <Users size={14} /> Take this test
-                </Link>
+            {recommendation.content.strengths?.length > 0 && (
+              <div className="ai-report-section">
+                <h4>Strengths</h4>
+                <ul>{recommendation.content.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
               </div>
-            </>
-          )}
-        </aside>
+            )}
+            {recommendation.content.improvements?.length > 0 && (
+              <div className="ai-report-section">
+                <h4>Improvements</h4>
+                <ul>{recommendation.content.improvements.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+              </div>
+            )}
+            {recommendation.content.ideal_roles?.length > 0 && (
+              <div className="ai-report-section">
+                <h4>Ideal Roles</h4>
+                <ul>{recommendation.content.ideal_roles.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+              </div>
+            )}
+            {recommendation.content.tips?.length > 0 && (
+              <div className="ai-report-section">
+                <h4>Tips</h4>
+                <ul>{recommendation.content.tips.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
+              </div>
+            )}
 
-      </div>
+            {widgetError && <div className="alert alert-danger mt-2">{widgetError}</div>}
+            <button onClick={handleGenerateReport} disabled={generating} className="btn btn-ghost btn-sm mt-2">
+              {generating ? <><Loader2 size={13} className="spin" /> Regenerating...</> : 'Regenerate report'}
+            </button>
+          </div>
+        </aside>
+      )}
 
     </div>
   );

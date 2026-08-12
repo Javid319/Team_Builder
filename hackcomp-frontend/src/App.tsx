@@ -9,6 +9,8 @@ import ProfileForm from './pages/ProfileForm';
 import SkillAssessment from './pages/SkillAssessment';
 import ResumeVerification from './pages/ResumeVerification';
 import TeamAssessment from './pages/TeamAssessment';
+import HackathonDetailsPage from './pages/HackathonDetailsPage';
+import TeamCreatePage from './pages/TeamCreatePage';
 import OnboardingProfile from './pages/onboarding/OnboardingProfile';
 import OnboardingSkills from './pages/onboarding/OnboardingSkills';
 import BrandLogo from './components/BrandLogo';
@@ -131,7 +133,7 @@ const Navigation = () => {
               onClick={handleToggleTheme}
             >
               {theme === 'light' ? <Sun size={15} /> : <Moon size={15} />}
-              <span style={{ flex: 1 }}>{theme === 'light' ? 'Light Mode' : 'Dark Mode'}</span>
+              <span style={{ flex: 1 }}>Light Mode</span>
               <span className={`theme-toggle ${theme === 'light' ? 'on' : ''}`}>
                 <span className="theme-toggle-track">
                   <span className="theme-toggle-thumb" />
@@ -193,6 +195,8 @@ function App() {
           <Route path="/verification" element={<AppGuard><ResumeVerification /></AppGuard>} />
           <Route path="/assessment" element={<AppGuard><SkillAssessment /></AppGuard>} />
           <Route path="/test" element={<AppGuard><TeamAssessment /></AppGuard>} />
+          <Route path="/hackathons/:id" element={<AppGuard><HackathonDetailsPage /></AppGuard>} />
+          <Route path="/hackathons/:id/team/create" element={<AppGuard><TeamCreatePage /></AppGuard>} />
           <Route path="/personality" element={<Navigate to="/test" replace />} />
           <Route path="/collaboration" element={<Navigate to="/test" replace />} />
         </Routes>
