@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { api } from '../api';
 import { getHackathonById } from '../services/hackathonService';
 import {
   allCandidateSkills,
@@ -17,9 +18,9 @@ import type {
   CandidateProfile,
   CandidateRole,
   CommitmentLevel,
-  CreatedTeam,
 } from '../types/candidate';
 import type { Hackathon } from '../types/hackathon';
+import type { TeamOut } from '../types/team';
 import {
   ArrowLeft,
   ArrowRight,
@@ -55,8 +56,6 @@ const emptyFilters = (): CandidateFilters => ({
 
 const toggleIn = <T,>(arr: T[], value: T): T[] =>
   arr.includes(value) ? arr.filter((v) => v !== value) : [...arr, value];
-
-const uid = () => `team_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
 
 // ── Stepper ───────────────────────────────────────────────────
 const Stepper = ({ current }: { current: Step }) => (
@@ -203,8 +202,10 @@ const TeamCreatePage = () => {
   const [filters, setFilters] = useState<CandidateFilters>(emptyFilters());
 
   // Step 4 — create
-  const [createdTeam, setCreatedTeam] = useState<CreatedTeam | null>(null);
+  const [createdTeam, setCreatedTeam] = useState<TeamOut | null>(null);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [inviteFailures, setInviteFailures] = useState<{ name: string; reason: string }[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -290,32 +291,38 @@ const TeamCreatePage = () => {
 
   const clearFilters = () => setFilters(emptyFilters());
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!hackathon) return;
     setCreating(true);
-    const team: CreatedTeam = {
-      id: uid(),
-      hackathon_id: hackathon.id,
-      hackathon_title: hackathon.title,
-      name: teamName.trim(),
-      size: Number(teamSize),
-      domains,
-      description: teamDesc.trim(),
-      members: invitedCandidates.map((c) => ({
-        id: c.id,
-        name: c.name,
-        role: c.profile_data.role.role,
-        skills: c.profile_data.ability.skills.map((s) => s.name),
-        commitment_level: c.profile_data.availability.commitment_level,
-      })),
-      created_at: new Date().toISOString(),
-    };
-    setTimeout(() => {
-      const existing = JSON.parse(localStorage.getItem('hackcomp_teams') || '[]') as CreatedTeam[];
-      localStorage.setItem('hackcomp_teams', JSON.stringify([...existing, team]));
+    setCreateError('');
+    setInviteFailures([]);
+    try {
+      const res = await api.createTeam({
+        name: teamName.trim(),
+        description: teamDesc.trim() || null,
+        domains,
+        max_members: Number(teamSize),
+      });
+      const team = res.data as TeamOut;
+
+      const failures: { name: string; reason: string }[] = [];
+      for (const candidate of invitedCandidates) {
+        try {
+          await api.inviteMember(team.id, { receiver_id: candidate.id });
+        } catch (err: any) {
+          failures.push({
+            name: candidate.name,
+            reason: err.response?.data?.detail || 'Invitation failed',
+          });
+        }
+      }
+      setInviteFailures(failures);
       setCreatedTeam(team);
+    } catch (err: any) {
+      setCreateError(err.response?.data?.detail || 'Team creation failed. Please try again.');
+    } finally {
       setCreating(false);
-    }, 600);
+    }
   };
 
   // ── Loading / not-found ──
@@ -348,26 +355,45 @@ const TeamCreatePage = () => {
           <div className="team-success-icon"><PartyPopper size={30} /></div>
           <h1>Team created!</h1>
           <p className="text-subtle">
-            Your team <strong>{createdTeam.name}</strong> is ready for <strong>{createdTeam.hackathon_title}</strong>.
+            Your team <strong>{createdTeam.name}</strong> is ready for <strong>{hackathon.title}</strong>.
           </p>
+
+          {createError && <div className="alert alert-danger">{createError}</div>}
 
           <div className="team-success-card">
             <div className="flex items-center gap-2 mb-2">
               <Users size={15} color="var(--primary)" />
-              <h3 className="card-title">Team members ({createdTeam.members.length})</h3>
+              <h3 className="card-title">Team members ({createdTeam.member_count})</h3>
             </div>
             <div className="team-success-members">
               {createdTeam.members.map((m) => (
                 <div key={m.id} className="team-success-member">
-                  <span className="badge badge-neutral">{roleLabel(m.role)}</span>
+                  <span className="badge badge-neutral">{m.role === 'OWNER' ? 'Owner' : 'Member'}</span>
                   <span>{m.name}</span>
                 </div>
               ))}
             </div>
+
+            {invitedCandidates.length > 0 && (
+              <p className="text-subtle" style={{ marginTop: 12 }}>
+                {invitedCandidates.length} invite{invitedCandidates.length === 1 ? '' : 's'} sent to your selected candidates.
+              </p>
+            )}
+
+            {inviteFailures.length > 0 && (
+              <div className="alert alert-warning" style={{ marginTop: 12 }}>
+                <strong>{inviteFailures.length} invite{inviteFailures.length === 1 ? '' : 's'} failed:</strong>
+                <ul style={{ margin: '4px 0 0 18px' }}>
+                  {inviteFailures.map((f) => (
+                    <li key={f.name}>{f.name} — {f.reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="flex wrap gap-2" style={{ marginTop: 20 }}>
-            <Link to="/dashboard" className="btn btn-primary btn-sm"><ArrowRight size={14} /> Go to Dashboard</Link>
+            <Link to="/teams" className="btn btn-primary btn-sm"><ArrowRight size={14} /> Go to Team Dashboard</Link>
             <Link to={`/hackathons/${hackathon.id}`} className="btn btn-ghost btn-sm">View Hackathon</Link>
           </div>
         </div>
@@ -630,9 +656,12 @@ const TeamCreatePage = () => {
             {step === 3 ? `Review (${invited.length})` : 'Continue'} <ArrowRight size={15} />
           </button>
         ) : (
-          <button type="button" className="btn btn-primary" onClick={handleCreate} disabled={creating || invited.length === 0}>
-            {creating ? <><Loader2 size={15} className="spin" /> Creating…</> : <><UserPlus size={15} /> Create Team</>}
-          </button>
+          <div className="flex items-center gap-3">
+            {createError && <span className="text-danger text-sm">{createError}</span>}
+            <button type="button" className="btn btn-primary" onClick={handleCreate} disabled={creating || invited.length === 0}>
+              {creating ? <><Loader2 size={15} className="spin" /> Creating…</> : <><UserPlus size={15} /> Create Team</>}
+            </button>
+          </div>
         )}
       </div>
 

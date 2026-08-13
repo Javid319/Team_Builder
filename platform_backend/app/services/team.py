@@ -10,12 +10,18 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.team import Team, TeamMember, TeamMemberRole, TeamStatus
 from app.models.user import User
-from app.schemas.team import TeamMemberOut, TeamOut
+from app.schemas.team import (
+    TeamListOwnerOut,
+    TeamListItem,
+    TeamMemberOut,
+    TeamOut,
+)
 
 
 class TeamServiceError(Exception):
@@ -59,6 +65,67 @@ def get_membership(
             TeamMember.user_id == user_id,
         )
         .first()
+    )
+
+
+def list_teams(
+    db: Session,
+    page: int = 1,
+    page_size: int = 20,
+    domains: Optional[list[str]] = None,
+    search: Optional[str] = None,
+):
+    """List OPEN teams with pagination and filtering.
+
+    `domains` is OR-ed via array overlap; `search` matches name or description.
+    Returns (teams, total_count).
+    """
+    query = db.query(Team).filter(Team.status == TeamStatus.OPEN)
+
+    if domains:
+        query = query.filter(Team.domains.overlap(domains))
+
+    if search and search.strip():
+        s = search.strip()
+        query = query.filter(
+            or_(
+                Team.name.ilike(f"%{s}%"),
+                Team.description.ilike(f"%{s}%"),
+            )
+        )
+
+    total = query.count()
+    teams = (
+        query.order_by(Team.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+        .all()
+    )
+    return teams, total
+
+
+def build_team_list_item(db: Session, team: Team) -> TeamListItem:
+    """Serialize a team for the /teams listing with size + owner context."""
+    member_count = (
+        db.query(TeamMember.id).filter(TeamMember.team_id == team.id).count()
+    )
+    owner = db.query(User).filter(User.id == team.owner_id).first()
+    return TeamListItem(
+        id=team.id,
+        name=team.name,
+        description=team.description,
+        domains=list(team.domains or []),
+        status=team.status,
+        max_members=team.max_members,
+        current_size=member_count,
+        open_slots=max(team.max_members - member_count, 0),
+        owner=(
+            TeamListOwnerOut(
+                id=owner.id, name=owner.full_name, email=owner.email
+            )
+            if owner
+            else None
+        ),
     )
 
 

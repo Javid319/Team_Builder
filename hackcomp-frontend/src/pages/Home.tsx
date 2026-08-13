@@ -11,8 +11,11 @@ import {
   CheckCircle2,
   GitFork,
   BrainCircuit,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
+import { getInitialTheme, applyTheme, type Theme } from '../utils/theme';
 
 /* ── Scroll-reveal wrapper ──────────────────────────────────── */
 const Reveal = ({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) => {
@@ -79,6 +82,13 @@ const STEPS = [
 /* ── Home ───────────────────────────────────────────────────── */
 const Home = () => {
   const navigate = useNavigate();
+  const [theme, setTheme] = useState<Theme>(getInitialTheme());
+
+  const handleToggleTheme = () => {
+    const next: Theme = theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    setTheme(next);
+  };
 
   return (
     <div className="home-page">
@@ -102,7 +112,15 @@ const Home = () => {
             <a href="#how">How it works</a>
           </nav>
 
-          <div className="home-nav-actions">
+          <div className="home-nav-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button
+              onClick={handleToggleTheme}
+              className="hover-bg"
+              style={{ background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '50%' }}
+              title="Toggle Theme"
+            >
+              {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             <button className="btn btn-ghost home-btn" onClick={() => navigate('/login')}>
               Sign in
             </button>

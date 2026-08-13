@@ -37,42 +37,6 @@ const addDays = (iso: string, days: number): string => {
   return d.toISOString().slice(0, 10);
 };
 
-// Deterministic mock match score so it stays stable per hackathon
-const mockMatchScore = (id: string): number => {
-  let hash = 0;
-  for (let i = 0; i < id.length; i += 1) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
-  return 72 + (Math.abs(hash) % 25); // 72–96
-};
-
-const mockSuggestedRole = (domains: string[]): string => {
-  const map: Record<string, string> = {
-    'AI/ML': 'Machine Learning Engineer',
-    'Data Science': 'Data Scientist',
-    'Web Development': 'Full Stack Developer',
-    'Cloud': 'Cloud Engineer',
-    'Cybersecurity': 'Security Analyst',
-    'Blockchain/Web3': 'Blockchain Developer',
-    'IoT': 'IoT Engineer',
-    'FinTech': 'Backend Developer',
-    'Healthcare': 'Health Tech Engineer',
-    'Sustainability': 'Backend Developer',
-  };
-  return map[domains[0]] || 'Backend Developer';
-};
-
-const mockReasons = (domains: string[], skills: string[]): string[] => {
-  const reasons: string[] = [];
-  if (skills.length) {
-    const hit = skills.find((s) => domains.some((d) => d.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(d.toLowerCase().split('/')[0])));
-    reasons.push(hit ? `✓ ${hit} matches this hackathon` : `✓ ${skills[0]} is in demand here`);
-  } else {
-    reasons.push(`✓ ${domains[0]} matches your interests`);
-  }
-  reasons.push('✓ Strong analytical problem-solving skills');
-  reasons.push('✓ Weekend availability confirmed');
-  return reasons;
-};
-
 // Mock prize breakdown derived from the total pool
 const prizeBreakdown = (pool: number): { label: string; amount: number; icon: 'gold' | 'silver' | 'bronze' }[] => [
   { label: '1st Place', amount: Math.round(pool * 0.5), icon: 'gold' },
@@ -85,7 +49,6 @@ const HackathonDetailsPage = () => {
   const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [similar, setSimilar] = useState<Hackathon[]>([]);
   const [profile, setProfile] = useState<any>(null);
-  const [skills, setSkills] = useState<any[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -103,8 +66,7 @@ const HackathonDetailsPage = () => {
         setSimilar(
           all
             .filter((h) => h.id !== hack.id && h.domains.some((d) => hack.domains.includes(d)))
-            .concat(all.filter((h) => h.id !== hack.id && !h.domains.some((d) => hack.domains.includes(d))))
-            .slice(0, 3),
+            .slice(0, 3)
         );
       } finally {
         if (!cancelled) setLoading(false);
@@ -115,22 +77,7 @@ const HackathonDetailsPage = () => {
 
   useEffect(() => {
     api.getProfile().then((res) => setProfile(res.data)).catch(() => setProfile(null));
-    api.getSkills().then((res) => setSkills(res.data || [])).catch(() => setSkills([]));
   }, []);
-
-  const skillNames = useMemo(() => skills.map((s: any) => s.name), [skills]);
-  const profileCompletion = useMemo(() => {
-    if (!profile) return 0;
-    let pct = 0;
-    if (profile.name) pct += 15;
-    if (profile.college) pct += 15;
-    if (profile.degree) pct += 10;
-    if (profile.department) pct += 10;
-    if (profile.city) pct += 10;
-    if (profile.experience_level) pct += 15;
-    if (skillNames.length) pct += 25;
-    return Math.min(pct, 100);
-  }, [profile, skillNames]);
 
   if (loading) {
     return (
@@ -154,9 +101,6 @@ const HackathonDetailsPage = () => {
   }
 
   const status = STATUS_META[hackathon.status];
-  const matchScore = mockMatchScore(hackathon.id);
-  const suggestedRole = profile?.role ? String(profile.role).replace(/_/g, ' ') : mockSuggestedRole(hackathon.domains);
-  const reasons = mockReasons(hackathon.domains, skillNames);
   const prizes = prizeBreakdown(hackathon.prize_pool);
   const registrationOpens = addDays(hackathon.registration_deadline, -30);
 
@@ -188,59 +132,54 @@ const HackathonDetailsPage = () => {
           <img src={hackathon.image_url} alt={hackathon.title} />
           <span className={`badge hack-detail-hero-status ${status.className}`}>{status.label}</span>
         </div>
-        <div className="hack-detail-hero-body">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="badge badge-primary">{hackathon.mode}</span>
-            <span className="badge badge-neutral"><MapPin size={11} /> {hackathon.location}</span>
-          </div>
-          <h1 className="hack-detail-hero-title">{hackathon.title}</h1>
-          <p className="hack-detail-hero-organizer">
-            <Building2 size={15} /> {hackathon.organizer}
-          </p>
-          <p className="hack-detail-hero-sub">{hackathon.short_description}</p>
+        <div className="hack-detail-hero-body" style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: '24px' }}>
+          <div className="hack-detail-hero-main" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="badge badge-primary">{hackathon.mode}</span>
+              <span className="badge badge-neutral"><MapPin size={11} /> {hackathon.location}</span>
+            </div>
+            <h1 className="hack-detail-hero-title">{hackathon.title}</h1>
+            <p className="hack-detail-hero-organizer">
+              <Building2 size={15} /> {hackathon.organizer}
+            </p>
+            <p className="hack-detail-hero-sub">{hackathon.short_description}</p>
 
-          <div className="hack-detail-stats">
-            {heroStats.map((stat) => (
-              <div key={stat.label} className="hack-detail-stat">
-                <stat.icon size={16} />
-                <span className="hack-detail-stat-label">{stat.label}</span>
-                <span className="hack-detail-stat-value">{stat.value}</span>
-              </div>
-            ))}
+            <div className="hack-detail-stats">
+              {heroStats.map((stat) => (
+                <div key={stat.label} className="hack-detail-stat">
+                  <stat.icon size={16} />
+                  <span className="hack-detail-stat-label">{stat.label}</span>
+                  <span className="hack-detail-stat-value">{stat.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="hack-detail-action-card" style={{ width: '320px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px', flexShrink: 0 }}>
+            <div style={{ background: '#111', color: '#fff', fontSize: '11px', fontWeight: 600, padding: '4px 10px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '6px', alignSelf: 'flex-start' }}>
+              <span style={{ color: '#ef4444' }}>●</span> {Math.max(0, Math.ceil((new Date(hackathon.registration_deadline).getTime() - new Date().getTime()) / (1000 * 3600 * 24)))} Days Left
+            </div>
+            
+            <div className="flex items-center gap-3" style={{ padding: '12px', border: '1px solid var(--border)', borderRadius: '8px' }}>
+               <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 'bold' }}>
+                 {profile?.name ? profile.name.charAt(0).toUpperCase() : 'U'}
+               </div>
+               <div style={{ flex: 1, minWidth: 0 }}>
+                 <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.name || 'Guest User'}</div>
+                 <div style={{ fontSize: '11px', color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile?.email || 'guest@example.com'}</div>
+               </div>
+            </div>
+            <Link to={`/hackathons/${hackathon.id}/team/create`} className="btn btn-primary btn-full" style={{ padding: '12px', fontSize: '14px', borderRadius: '8px' }}>
+              Create/Join a team
+            </Link>
+            <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--text-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 500 }}>
+              <UsersRound size={16} color="var(--primary)" /> {formatParticipants(hackathon.participants)} Registered
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── 2. Team Formation ── */}
-      <section className="hack-detail-section">
-        <h2 className="hack-detail-heading">Team Formation</h2>
-        <p className="hack-detail-lede">Team up with the right people. Choose how you want to build your team.</p>
 
-        <div className="hack-detail-team-grid">
-          <div className="hack-detail-team-card">
-            <div className="hack-detail-team-icon">
-              <UsersRound size={22} />
-            </div>
-            <h3>Create Team (Regular)</h3>
-            <p>Manually browse and invite teammates to join your hackathon project.</p>
-            <Link to={`/hackathons/${hackathon.id}/team/create`} className="btn btn-primary btn-full">
-              Start Regular Team <ArrowRight size={15} />
-            </Link>
-          </div>
-
-          <div className="hack-detail-team-card hack-detail-team-card-accent">
-            <span className="badge badge-warning hack-detail-team-reco">Recommended</span>
-            <div className="hack-detail-team-icon" style={{ background: 'var(--warning-muted)', color: '#f59e0b' }}>
-              <Wand2 size={22} />
-            </div>
-            <h3>Create Team (Blueprint)</h3>
-            <p>Define your ideal team structure and receive recommended teammates.</p>
-            <Link to={`/hackathons/${hackathon.id}/blueprint/create`} className="btn btn-primary btn-full">
-              Start Blueprint Team <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-      </section>
 
       {/* ── 3. About + 4. Domains ── */}
       <section className="hack-detail-section">
@@ -299,57 +238,6 @@ const HackathonDetailsPage = () => {
           <li><CheckCircle2 size={15} /> Registrations close on {formatDate(hackathon.registration_deadline)}</li>
           <li><CheckCircle2 size={15} /> A verified developer profile is recommended to get the best team matches</li>
         </ul>
-      </section>
-
-      {/* ── 8. For You ── */}
-      <section className="hack-detail-section">
-        <h2 className="hack-detail-heading">For You</h2>
-        <div className="hack-detail-foryou">
-          <div className="hack-detail-match">
-            <span className="hack-detail-match-ring">
-              <span>{matchScore}%</span>
-            </span>
-            <div>
-              <span className="hack-detail-match-label">Match Score</span>
-              <span className="hack-detail-match-sub">How well this hackathon fits you</span>
-            </div>
-          </div>
-
-          <div className="hack-detail-foryou-main">
-            <div className="hack-detail-foryou-block">
-              <span className="hack-detail-foryou-label"><Target size={13} /> Suggested Role</span>
-              <span className="hack-detail-foryou-value">{suggestedRole}</span>
-            </div>
-
-            <div className="hack-detail-foryou-block">
-              <span className="hack-detail-foryou-label"><Wand2 size={13} /> Relevant Skills</span>
-              <div className="flex wrap gap-2">
-                {skillNames.length ? (
-                  skillNames.slice(0, 6).map((name) => <span key={name} className="skill-tag">{name}</span>)
-                ) : (
-                  hackathon.domains.slice(0, 3).map((domain) => <span key={domain} className="skill-tag">{domain}</span>)
-                )}
-              </div>
-            </div>
-
-            <div className="hack-detail-foryou-block">
-              <span className="hack-detail-foryou-label"><Sparkles size={13} /> Why this match</span>
-              <ul className="hack-detail-reasons">
-                {reasons.map((reason) => <li key={reason}>{reason}</li>)}
-              </ul>
-            </div>
-
-            <div className="hack-detail-foryou-block">
-              <span className="hack-detail-foryou-label"><FileText size={13} /> Profile Completion</span>
-              <div className="hack-detail-foryou-progress">
-                <div className="hack-detail-foryou-progress-track">
-                  <div className="hack-detail-foryou-progress-fill" style={{ width: `${profileCompletion}%` }} />
-                </div>
-                <span className="hack-detail-foryou-progress-value">{profileCompletion}% complete</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* ── 9. Similar Hackathons ── */}

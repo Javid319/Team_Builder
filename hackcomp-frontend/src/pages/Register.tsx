@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sun, Moon } from 'lucide-react';
 import BrandLogo from '../components/BrandLogo';
+import { getInitialTheme, applyTheme, type Theme } from '../utils/theme';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,14 @@ const Register = () => {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme());
   const navigate = useNavigate();
+
+  const handleToggleTheme = () => {
+    const next: Theme = theme === 'light' ? 'dark' : 'light';
+    applyTheme(next);
+    setTheme(next);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,6 +41,15 @@ const Register = () => {
 
   return (
     <div className="page-center fade-in">
+      <button
+        onClick={handleToggleTheme}
+        className="hover-bg"
+        style={{ position: 'absolute', top: '24px', right: '24px', background: 'transparent', border: 'none', color: 'var(--text)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '50%' }}
+        title="Toggle Theme"
+      >
+        {theme === 'light' ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+
       <div style={{ width: '100%', maxWidth: '380px' }}>
         <div className="flex items-center mb-6" style={{ justifyContent: 'center' }}>
           <BrandLogo size={28} />

@@ -61,3 +61,18 @@ class User(Base):
     join_requests = relationship(
         "TeamJoinRequest", back_populates="user", cascade="all, delete-orphan"
     )
+    owned_blueprints = relationship(
+        "Blueprint", back_populates="owner", cascade="all, delete-orphan"
+    )
+    blueprint_memberships = relationship(
+        "BlueprintMember", back_populates="user", cascade="all, delete-orphan"
+    )
+    sent_blueprint_invitations = relationship(
+        "BlueprintInvitation", back_populates="sender", foreign_keys="BlueprintInvitation.sender_id", cascade="all, delete-orphan"
+    )
+    received_blueprint_invitations = relationship(
+        "BlueprintInvitation", back_populates="receiver", foreign_keys="BlueprintInvitation.receiver_id", cascade="all, delete-orphan"
+    )
+    blueprint_join_requests = relationship(
+        "BlueprintJoinRequest", back_populates="user", cascade="all, delete-orphan"
+    )

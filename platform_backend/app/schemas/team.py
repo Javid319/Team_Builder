@@ -13,7 +13,12 @@ from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models.team import InvitationStatus, TeamStatus, TeamMemberRole
+from app.models.team import (
+    InvitationStatus,
+    JoinRequestStatus,
+    TeamStatus,
+    TeamMemberRole,
+)
 
 TEAM_NAME_MAX = 255
 TEAM_MIN_MEMBERS = 2
@@ -103,6 +108,60 @@ class MemberRecommendation(BaseModel):
     domain_match: list[str] = []
     assessment_compatibility: int = 0
     skill_overlap: list[str] = []
+
+
+# ── Team listing (GET /teams) ─────────────────────────────────
+class TeamListOwnerOut(BaseModel):
+    id: uuid.UUID
+    name: Optional[str] = None
+    email: Optional[str] = None
+
+
+class TeamListItem(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: Optional[str] = None
+    domains: list[str] = []
+    status: TeamStatus
+    max_members: int
+    current_size: int
+    open_slots: int
+    owner: Optional[TeamListOwnerOut] = None
+
+
+class TeamListResponse(BaseModel):
+    items: list[TeamListItem] = []
+    total: int
+    page: int
+    page_size: int
+
+
+# ── Join requests ──────────────────────────────────────────────
+class JoinRequestUserOut(BaseModel):
+    id: uuid.UUID
+    name: Optional[str] = None
+    email: Optional[str] = None
+    college: Optional[str] = None
+    role: Optional[str] = None
+
+
+class JoinRequestTeamOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    domains: list[str] = []
+    status: TeamStatus
+    member_count: int = 0
+    max_members: int
+
+
+class JoinRequestOut(BaseModel):
+    id: uuid.UUID
+    team_id: uuid.UUID
+    user_id: uuid.UUID
+    status: JoinRequestStatus
+    created_at: datetime
+    team: Optional[JoinRequestTeamOut] = None
+    user: Optional[JoinRequestUserOut] = None
 
 
 # ── Invitations ────────────────────────────────────────────────

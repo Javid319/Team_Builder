@@ -6,21 +6,21 @@ import { getSkillBadge, loadVerifiedSkills, passedSkillNames } from '../utils/sk
 import HackathonGrid from '../components/hackathons/HackathonGrid';
 import {
   User, Loader2, ArrowRight, Brain, FileText,
-  Sparkles, Users, Wrench, CheckCircle2,
+  Wrench, CheckCircle2,
 } from 'lucide-react';
 
 // ── User Dashboard completion (0 base + three action steps) ──
-const computeCompletion = (assessmentDone: boolean, verificationDone: boolean, recommendationDone: boolean): number => {
+const computeCompletion = (assessmentDone: boolean, verificationDone: boolean, quizDone: boolean): number => {
   let pct = 0;
   if (assessmentDone) pct += 30;          // Skill Assessment
   if (verificationDone) pct += 30;        // Resume & GitHub Verification
-  if (recommendationDone) pct += 40;      // AI-powered Improve Team Recommendations
+  if (quizDone) pct += 40;                // Personality Assessment
   return pct;
 };
 
 const completionNote = (pct: number) => {
   if (pct === 100) return 'Profile complete. Ready to match with teams.';
-  if (pct >= 60) return 'Almost there — generate your AI team report to finish.';
+  if (pct >= 60) return 'Almost there — complete the personality assessment to finish.';
   if (pct >= 30) return 'Good start. Complete the remaining steps to unlock better team matching.';
   return 'Complete the three steps below to build your profile.';
 };
@@ -104,30 +104,28 @@ const Dashboard = () => {
   const [assessedNames, setAssessedNames] = useState<Set<string>>(new Set());
   const [verificationDone, setVerificationDone] = useState(false);
   const [quizDone, setQuizDone] = useState(false);
-  const [recommendation, setRecommendation] = useState<any>(null);
-  const [generating, setGenerating] = useState(false);
-  const [widgetError, setWidgetError] = useState('');
+  // We no longer track recommendation state here
+
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [skillsRes, skillAssessRes, personStatus, collabStatus, verificationRes, recRes, meRes] = await Promise.all([
+        const [skillsRes, skillAssessRes, personStatus, collabStatus, verificationRes, meRes, profileRes] = await Promise.all([
           api.getSkills().catch(() => ({ data: [] })),
           api.getSkillResults().catch(() => ({ data: null })),
           api.getPersonalityStatus().catch(() => ({ data: { completed: false } })),
           api.getCollabStatus().catch(() => ({ data: { completed: false } })),
           api.getVerificationStatus().catch(() => ({ data: { completed: false } })),
-          api.getRecommendations().catch(() => ({ data: null })),
           api.getMe().catch(() => ({ data: {} })),
+          api.getProfile().catch(() => ({ data: null })),
         ]);
         setSkills(skillsRes.data || []);
         setAssessedNames(passedSkillNames(skillAssessRes.data?.skills || []));
         setQuizDone(Boolean(personStatus.data?.completed) && Boolean(collabStatus.data?.completed));
         setVerificationDone(Boolean(verificationRes.data?.completed));
-        setRecommendation(recRes.data);
-        setUserName(meRes.data?.full_name || '');
+        setUserName(profileRes.data?.name || meRes.data?.full_name || '');
       } catch (err) {
         console.error('Failed to fetch dashboard data', err);
       } finally {
@@ -136,19 +134,6 @@ const Dashboard = () => {
     };
     fetchData();
   }, []);
-
-  const handleGenerateReport = async () => {
-    setGenerating(true);
-    setWidgetError('');
-    try {
-      const res = await api.generateRecommendations();
-      setRecommendation(res.data);
-    } catch (err: any) {
-      setWidgetError(err.response?.data?.detail || 'AI report generation failed. Please try again.');
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -160,8 +145,7 @@ const Dashboard = () => {
 
   const totalSkills = skills.length;
   const assessmentDone = assessedNames.size > 0;
-  const recommendationDone = Boolean(recommendation);
-  const completion = computeCompletion(assessmentDone, verificationDone, recommendationDone);
+  const completion = computeCompletion(assessmentDone, verificationDone, quizDone);
   const verifiedNames = loadVerifiedSkills();
   const githubVerifiedCount = skills.filter((s) => {
     const badge = getSkillBadge(s.name, assessedNames, verifiedNames);
@@ -221,23 +205,19 @@ const Dashboard = () => {
           done={assessmentDone}
         />
         <ProgressCard
-          icon={<Sparkles size={20} />}
+          icon={<Brain size={20} />}
           iconClass="is-warning"
-          title="Improve Team Recommendations"
-          desc={recommendationDone ? 'AI report generated' : 'Unlock better team matching'}
-          done={recommendationDone}
+          title="Personality Assessment"
+          desc={quizDone ? 'Assessment completed' : 'Complete the Big Five test to improve team matching'}
+          done={quizDone}
         >
-          {recommendationDone ? (
-            <a href="#ai-report" className="progress-card-action">
-              View Report <ArrowRight size={12} />
-            </a>
-          ) : quizDone ? (
-            <button onClick={handleGenerateReport} disabled={generating} className="progress-card-action">
-              {generating ? <><Loader2 size={12} className="spin" /> Generating...</> : <><Sparkles size={12} /> Generate AI Report</>}
-            </button>
+          {quizDone ? (
+            <span className="progress-card-action" style={{ color: 'var(--success)' }}>
+              <CheckCircle2 size={12} /> Completed
+            </span>
           ) : (
             <Link to="/test" className="progress-card-action">
-              <Users size={12} /> Take this test
+              Take Assessment <ArrowRight size={12} />
             </Link>
           )}
         </ProgressCard>
@@ -267,55 +247,6 @@ const Dashboard = () => {
 
       {/* ── Upcoming Hackathons (mock data) ── */}
       <HackathonGrid limit={6} />
-
-      {/* ── AI team report (shown when generated) ── */}
-      {recommendationDone && (
-        <aside id="ai-report" className="widget-recommend mb-6">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="widget-recommend-icon">
-              <Sparkles size={17} />
-            </div>
-            <h3 className="card-title">Your AI Team Report</h3>
-            <span className="badge badge-primary flex items-center gap-1" style={{ marginLeft: 'auto' }}>
-              <Sparkles size={11} /> AI powered
-            </span>
-          </div>
-
-          <div className="ai-report">
-            <p className="ai-report-summary">{recommendation.content.summary}</p>
-
-            {recommendation.content.strengths?.length > 0 && (
-              <div className="ai-report-section">
-                <h4>Strengths</h4>
-                <ul>{recommendation.content.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-            {recommendation.content.improvements?.length > 0 && (
-              <div className="ai-report-section">
-                <h4>Improvements</h4>
-                <ul>{recommendation.content.improvements.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-            {recommendation.content.ideal_roles?.length > 0 && (
-              <div className="ai-report-section">
-                <h4>Ideal Roles</h4>
-                <ul>{recommendation.content.ideal_roles.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-            {recommendation.content.tips?.length > 0 && (
-              <div className="ai-report-section">
-                <h4>Tips</h4>
-                <ul>{recommendation.content.tips.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul>
-              </div>
-            )}
-
-            {widgetError && <div className="alert alert-danger mt-2">{widgetError}</div>}
-            <button onClick={handleGenerateReport} disabled={generating} className="btn btn-ghost btn-sm mt-2">
-              {generating ? <><Loader2 size={13} className="spin" /> Regenerating...</> : 'Regenerate report'}
-            </button>
-          </div>
-        </aside>
-      )}
 
     </div>
   );

@@ -70,4 +70,69 @@ export const api = {
   submitPersonalityAssessment: (data: any) => apiClient.post('/personality/submit', data),
   getPersonalityResult: () => apiClient.get('/personality/result'),
   getPersonalityStatus: () => apiClient.get('/personality/status'),
+
+  // Blueprints
+  getMyBlueprints: () => apiClient.get('/blueprints/mine'),
+  createBlueprint: (data: {
+    hackathon_id: string;
+    name: string;
+    description?: string | null;
+    domains: string[];
+    slots: { role: string; slot_order: number; skills: string[] }[];
+  }) => apiClient.post('/blueprints', data),
+  getBlueprintRecommendations: (blueprintId: string) => 
+    apiClient.get(`/blueprints/${blueprintId}/recommendations`),
+  inviteToBlueprint: (blueprintId: string, data: { receiver_id: string; slot_id: string }) =>
+    apiClient.post(`/blueprints/${blueprintId}/invite`, data),
+  getBlueprintDashboard: (blueprintId: string) =>
+    apiClient.get(`/blueprints/${blueprintId}/dashboard`),
+  getMyBlueprintInvitations: () =>
+    apiClient.get('/blueprints/my-invitations'),
+  acceptBlueprintInvitation: (invitationId: string) =>
+    apiClient.post(`/blueprints/invitations/${invitationId}/accept`),
+  rejectBlueprintInvitation: (invitationId: string) =>
+    apiClient.post(`/blueprints/invitations/${invitationId}/reject`),
+  cancelBlueprintInvitation: (invitationId: string) =>
+    apiClient.post(`/blueprints/invitations/${invitationId}/cancel`),
+  getBlueprints: (hackathonId: string) =>
+    apiClient.get(`/blueprints?hackathon_id=${hackathonId}`),
+  requestToJoinBlueprint: (blueprintId: string) =>
+    apiClient.post(`/blueprints/${blueprintId}/join-requests`),
+  acceptBlueprintJoinRequest: (requestId: string, slotId: string) =>
+    apiClient.post(`/blueprints/join-requests/${requestId}/accept`, { slot_id: slotId }),
+  rejectBlueprintJoinRequest: (requestId: string) =>
+    apiClient.post(`/blueprints/join-requests/${requestId}/reject`),
+  lockBlueprint: (blueprintId: string) =>
+    apiClient.post(`/blueprints/${blueprintId}/lock`),
+
+  // Teams
+  createTeam: (data: { name: string; description?: string | null; domains: string[]; max_members: number }) =>
+    apiClient.post('/teams', data),
+  getTeams: (params?: Record<string, unknown>) => apiClient.get('/teams', { params }),
+  getMyTeam: () => apiClient.get('/teams/my-team'),
+  getTeam: (teamId: string) => apiClient.get(`/teams/${teamId}`),
+  inviteMember: (teamId: string, data: { receiver_id: string }) =>
+    apiClient.post(`/teams/${teamId}/invite`, data),
+  createJoinRequest: (teamId: string) => apiClient.post(`/teams/${teamId}/join-request`),
+  getTeamJoinRequests: (teamId: string) => apiClient.get(`/teams/${teamId}/join-requests`),
+
+  // Join requests (mine)
+  getMyJoinRequests: () => apiClient.get('/my-join-requests'),
+
+  // Join request management (team owner)
+  acceptJoinRequest: (joinRequestId: string) =>
+    apiClient.post(`/join-requests/${joinRequestId}/accept`),
+  rejectJoinRequest: (joinRequestId: string) =>
+    apiClient.post(`/join-requests/${joinRequestId}/reject`),
+
+  // Invitations (received by me)
+  getMyInvitations: () => apiClient.get('/my-invitations'),
+  acceptInvitation: (invitationId: string) =>
+    apiClient.post(`/invitations/${invitationId}/accept`),
+  rejectInvitation: (invitationId: string) =>
+    apiClient.post(`/invitations/${invitationId}/reject`),
+
+  // Member discovery
+  getMemberRecommendations: (params?: { team_id?: string; limit?: number }) =>
+    apiClient.get('/recommendations/members', { params }),
 };

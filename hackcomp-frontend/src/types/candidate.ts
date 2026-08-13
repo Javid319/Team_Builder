@@ -62,23 +62,3 @@ export interface CandidateFilters {
   experience: CandidateExperience[];
   availability: CommitmentLevel[];
 }
-
-export interface InvitedMember {
-  id: string;
-  name: string;
-  role: CandidateRole;
-  skills: string[];
-  commitment_level: CommitmentLevel;
-}
-
-export interface CreatedTeam {
-  id: string;
-  hackathon_id: string;
-  hackathon_title: string;
-  name: string;
-  size: number;
-  domains: string[];
-  description: string;
-  members: InvitedMember[];
-  created_at: string;
-}

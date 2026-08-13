@@ -39,3 +39,4 @@ from app.models.team import (                                       # noqa: F401
     InvitationStatus,
     JoinRequestStatus,
 )
+from app.models.blueprint import Blueprint                          # noqa: F401, E402
