@@ -10,7 +10,7 @@ import type { LucideIcon } from 'lucide-react';
 import { api } from '../api';
 import { getSkillBadge, loadVerifiedSkills, passedSkillNames, saveVerifiedSkills } from '../utils/skillBadges';
 
-const RESUME_ENGINE_URL = 'http://localhost:8001';
+const RESUME_ENGINE_URL = import.meta.env.VITE_RESUME_ENGINE_URL || 'http://localhost:8001';
 
 type MatchedSkill = {
   resume_skill: string;

@@ -7,7 +7,7 @@ import {
 import OnboardingLayout from '../../components/OnboardingLayout';
 import AvatarUploader from '../../components/AvatarUploader';
 
-const RESUME_ENGINE_URL = 'http://localhost:8001';
+const RESUME_ENGINE_URL = import.meta.env.VITE_RESUME_ENGINE_URL || 'http://localhost:8001';
 
 const WORK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

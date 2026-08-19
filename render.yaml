@@ -1,0 +1,64 @@
+services:
+  # ── Platform Backend ────────────────────────────────────────
+  - type: web
+    name: hackcomp-platform-backend
+    runtime: python
+    rootDir: platform_backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_NAME
+        value: "Hackathon Team Formation Platform"
+      - key: APP_VERSION
+        value: "1.0.0"
+      - key: DEBUG
+        value: "False"
+      - key: ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: UPLOAD_DIR
+        value: uploads/resumes
+      - key: AVATAR_DIR
+        value: uploads/avatars
+      - key: MAX_UPLOAD_SIZE_MB
+        value: "5"
+      - key: MAX_AVATAR_SIZE_MB
+        value: "5"
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      # Set these as secrets in the Render dashboard — do NOT put real values here:
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_API_KEY_2
+        sync: false
+      - key: GROQ_API_KEY_3
+        sync: false
+      - key: GROQ_API_KEY_4
+        sync: false
+      - key: GROQ_API_KEY_5
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false   # Set to your Vercel frontend URL after deploying
+
+  # ── Resume Engine ────────────────────────────────────────────
+  - type: web
+    name: hackcomp-resume-engine
+    runtime: python
+    rootDir: resume_engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: LLM_ENDPOINT
+        value: https://api.groq.com/openai/v1/chat/completions
+      - key: LLM_MODEL
+        value: llama-3.1-8b-instant
+      # Set these as secrets in the Render dashboard:
+      - key: LLM_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
