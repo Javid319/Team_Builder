@@ -2,5 +2,8 @@
   "buildCommand": "cd hackcomp-frontend && npm install && npm run build",
   "outputDirectory": "hackcomp-frontend/dist",
   "installCommand": "cd hackcomp-frontend && npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
